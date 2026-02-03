@@ -7,8 +7,6 @@ import { createClient } from "@/lib/supabase/client";
 import { createAuditLog } from "@/lib/audit";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Upload, X, FileImage, Loader2, CheckCircle, CloudUpload, Sparkles, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -69,7 +67,6 @@ export function FileUploader({ patientId }: { patientId: string }) {
   const router = useRouter();
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [skippedCount, setSkippedCount] = useState(0);
-  const [description, setDescription] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [overallProgress, setOverallProgress] = useState(0);
 
@@ -186,7 +183,6 @@ export function FileUploader({ patientId }: { patientId: string }) {
             file_size: uploadedFile.file.size,
             storage_path: filePath,
             mime_type: uploadedFile.file.type || "application/dicom",
-            description: description || null,
           })
           .select()
           .single();
@@ -319,121 +315,68 @@ export function FileUploader({ patientId }: { patientId: string }) {
         </div>
       )}
 
-      {/* File List */}
-      {files.length > 0 && (
-        <div className="space-y-4 animate-fade-in-up">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold text-lg">Medical Files ({files.length})</h3>
-          </div>
-          <div className="space-y-3">
-            {files.map((uploadedFile, index) => (
-              <Card key={index} className="overflow-hidden border-0 shadow-soft transition-all hover:shadow-soft-lg">
-                <CardContent className="flex items-center gap-4 p-4">
-                  {/* Preview */}
-                  {uploadedFile.file.preview ? (
-                    <div className="relative h-14 w-14 overflow-hidden rounded-xl">
-                      <img
-                        src={uploadedFile.file.preview}
-                        alt={uploadedFile.file.name}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex h-14 w-14 items-center justify-center rounded-xl feature-icon">
-                      <FileImage className="h-7 w-7 text-primary" />
-                    </div>
-                  )}
-
-                  {/* File Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate font-medium text-sm">
-                      {uploadedFile.file.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {(uploadedFile.file.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                    {uploadedFile.status === "uploading" && (
-                      <Progress value={50} className="mt-2 h-1.5" />
-                    )}
-                    {uploadedFile.status === "error" && (
-                      <p className="text-xs text-destructive mt-1">
-                        {uploadedFile.error}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Status */}
-                  <div className="flex items-center gap-2">
-                    {uploadedFile.status === "uploading" && (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                      </div>
-                    )}
-                    {uploadedFile.status === "success" && (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                      </div>
-                    )}
-                    {uploadedFile.status !== "uploading" &&
-                      uploadedFile.status !== "success" && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-10 w-10 rounded-full hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => removeFile(index)}
-                        >
-                          <X className="h-5 w-5" />
-                        </Button>
-                      )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
+      {/* File Summary */}
+      {files.length > 0 && !isUploading && (
+        <Card className="border-0 shadow-soft animate-fade-in-up">
+          <CardContent className="flex items-center gap-4 p-6">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl feature-icon">
+              <FileImage className="h-8 w-8 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-lg">{files.length} medical file{files.length > 1 ? 's' : ''} ready</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Total size: {(files.reduce((acc, f) => acc + f.file.size, 0) / 1024 / 1024).toFixed(1)} MB
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={() => {
+                files.forEach((f) => {
+                  if (f.file.preview) URL.revokeObjectURL(f.file.preview);
+                });
+                setFiles([]);
+                setSkippedCount(0);
+              }}
+            >
+              <X className="h-4 w-4 mr-1" />
+              Clear
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Description */}
-      <div className="space-y-3">
-        <Label htmlFor="description" className="text-base font-medium">
-          Description <span className="text-muted-foreground font-normal">(optional)</span>
-        </Label>
-        <Textarea
-          id="description"
-          placeholder="Add notes about these files, e.g., 'MRI scan from January visit'..."
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="min-h-[100px] resize-none rounded-xl border-2 focus:border-primary/50"
-        />
-      </div>
+      {/* Upload in progress */}
+      {isUploading && (
+        <Card className="border-2 border-primary/20 bg-primary/5 animate-fade-in-up">
+          <CardContent className="p-6 text-center">
+            <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+            <h3 className="font-semibold text-lg">Uploading {files.length} files...</h3>
+            <p className="text-sm text-muted-foreground mt-2">
+              {files.filter(f => f.status === "success").length} of {files.length} complete
+            </p>
+            <p className="text-sm text-primary font-medium mt-4">
+              Please don&apos;t leave this page until the upload is complete.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Upload Button */}
-      <div className="flex justify-end gap-4 pt-4">
-        <Button
-          variant="outline"
-          onClick={() => {
-            files.forEach((f) => {
-              if (f.file.preview) URL.revokeObjectURL(f.file.preview);
-            });
-            setFiles([]);
-            setDescription("");
-          }}
-          disabled={isUploading || files.length === 0}
-          className="h-12 px-6 font-medium border-2"
-        >
-          Clear All
-        </Button>
-        <Button
-          onClick={uploadFiles}
-          disabled={isUploading || files.length === 0}
-          className="h-12 px-8 font-medium btn-glow shadow-lg shadow-primary/25"
-        >
-          {isUploading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-          <Upload className="mr-2 h-5 w-5" />
-          Upload {files.length > 0 && `(${files.length})`}
-        </Button>
-      </div>
+      {files.length > 0 && !isUploading && (
+        <div className="flex justify-center pt-4">
+          <Button
+            onClick={uploadFiles}
+            disabled={isUploading || files.length === 0}
+            size="lg"
+            className="h-14 px-12 text-lg font-medium btn-glow shadow-lg shadow-primary/25"
+          >
+            <Upload className="mr-2 h-6 w-6" />
+            Upload Now
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
