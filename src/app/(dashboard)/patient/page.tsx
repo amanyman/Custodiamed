@@ -1,208 +1,180 @@
-import { createClient } from "@/lib/supabase/server";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FolderOpen, Upload, Users, Share2, ArrowRight } from "lucide-react";
+import { Upload, FolderOpen, Share2, Disc, Monitor, ArrowRight, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
-export default async function PatientDashboard() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // Get patient record
-  const { data: patient } = await supabase
-    .from("patients")
-    .select("id")
-    .eq("user_id", user!.id)
-    .single();
-
-  // Run all queries in parallel for faster loading
-  const [filesResult, providersResult, sharesResult, recentFilesResult] = await Promise.all([
-    supabase
-      .from("medical_files")
-      .select("*", { count: "exact", head: true })
-      .eq("patient_id", patient?.id || ""),
-    supabase
-      .from("patient_provider_relationships")
-      .select("*", { count: "exact", head: true })
-      .eq("patient_id", patient?.id || "")
-      .eq("status", "active"),
-    supabase
-      .from("file_shares")
-      .select("*", { count: "exact", head: true })
-      .eq("patient_id", patient?.id || "")
-      .eq("status", "active"),
-    supabase
-      .from("imaging_studies")
-      .select("*")
-      .eq("patient_id", patient?.id || "")
-      .order("created_at", { ascending: false })
-      .limit(5),
-  ]);
-
-  const filesCount = filesResult.count;
-  const providersCount = providersResult.count;
-  const sharesCount = sharesResult.count;
-  const recentStudies = recentFilesResult.data;
-
-  const stats = [
-    {
-      title: "Total Files",
-      value: filesCount || 0,
-      icon: FolderOpen,
-      href: "/patient/files",
-    },
-    {
-      title: "Connected Providers",
-      value: providersCount || 0,
-      icon: Users,
-      href: "/patient/providers",
-    },
-    {
-      title: "Active Shares",
-      value: sharesCount || 0,
-      icon: Share2,
-      href: "/patient/shares",
-    },
-  ];
-
+export default function PatientDashboard() {
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-3xl font-bold">Welcome back</h2>
-        <p className="text-muted-foreground">
-          Here&apos;s an overview of your medical imaging
+    <div className="space-y-8 max-w-4xl mx-auto">
+      {/* Welcome Header */}
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-bold">Welcome to CustodiaMed</h1>
+        <p className="text-muted-foreground text-lg">
+          Share your medical imaging with healthcare providers in 3 simple steps
         </p>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        {stats.map((stat) => (
-          <Link key={stat.href} href={stat.href}>
-            <Card className="transition-colors hover:bg-accent/50">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {stat.title}
-                </CardTitle>
-                <stat.icon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{stat.value}</div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
-
-      {/* Quick Actions */}
-      <div>
-        <h3 className="mb-4 text-xl font-semibold">Quick Actions</h3>
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Upload className="h-5 w-5 text-primary" />
-                Upload Files
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-sm text-muted-foreground">
-                Upload medical imaging files from CDs or your device
-              </p>
-              <Link href="/patient/files/upload">
-                <Button className="gap-2">
-                  Upload Now
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Share2 className="h-5 w-5 text-primary" />
-                Share with Provider
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-sm text-muted-foreground">
-                Share your medical imaging with healthcare providers
-              </p>
-              <Link href="/patient/files">
-                <Button variant="outline" className="gap-2">
-                  View Files
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Recent Studies */}
-      <RecentStudies studies={recentStudies} />
-    </div>
-  );
-}
-
-function RecentStudies({ studies }: { studies: any[] | null }) {
-  if (!studies || studies.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Studies</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            No studies uploaded yet.{" "}
-            <Link href="/patient/files/upload" className="text-primary hover:underline">
-              Upload your first study
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Recent Studies</CardTitle>
-        <Link href="/patient/files">
-          <Button variant="ghost" size="sm">
-            View All
-          </Button>
-        </Link>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {studies.map((study) => (
-            <div
-              key={study.id}
-              className="flex items-center justify-between rounded-lg border border-border p-4"
-            >
-              <div className="flex items-center gap-3">
-                <FolderOpen className="h-8 w-8 text-primary" />
-                <div>
-                  <p className="font-medium">{study.study_type || study.modality}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(study.study_date).toLocaleDateString()}
-                    {study.facility_name && ` • ${study.facility_name}`}
-                  </p>
+      {/* Steps */}
+      <div className="grid gap-6">
+        {/* Step 1: Get Files from CD */}
+        <Card className="border-0 shadow-soft overflow-hidden">
+          <CardContent className="p-0">
+            <div className="flex flex-col md:flex-row">
+              <div className="bg-gradient-to-br from-primary/10 to-purple-500/10 p-6 md:p-8 md:w-16 flex items-center justify-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-xl">
+                  1
                 </div>
               </div>
-              <Link href={`/patient/files/study/${study.id}`}>
-                <Button variant="ghost" size="sm">
-                  View
-                </Button>
-              </Link>
+              <div className="p-6 md:p-8 flex-1">
+                <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
+                  <Disc className="h-5 w-5 text-primary" />
+                  Get Your Files from the CD
+                </h2>
+                <p className="text-muted-foreground mb-4">
+                  When you insert a medical imaging CD, the files are usually accessed in one of these ways:
+                </p>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 bg-muted/50 rounded-lg p-4">
+                    <Monitor className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium">Option A: CD opens automatically</p>
+                      <p className="text-sm text-muted-foreground">
+                        A viewer program may launch. Look for an &quot;Export&quot; or &quot;Save&quot; option,
+                        or close it and browse the CD directly.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 bg-muted/50 rounded-lg p-4">
+                    <FolderOpen className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium">Option B: Browse the CD folder</p>
+                      <p className="text-sm text-muted-foreground">
+                        Open File Explorer (Windows) or Finder (Mac). Click on the CD drive.
+                        Look for a folder called <span className="font-mono bg-muted px-1 rounded">DICOM</span>, <span className="font-mono bg-muted px-1 rounded">IMAGES</span>, or <span className="font-mono bg-muted px-1 rounded">DATA</span>.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 bg-muted/50 rounded-lg p-4">
+                    <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium">Tip: Copy the entire folder to your desktop first</p>
+                      <p className="text-sm text-muted-foreground">
+                        Right-click the main folder on the CD and select &quot;Copy&quot;.
+                        Then paste it on your Desktop. This makes uploading faster and easier.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+          </CardContent>
+        </Card>
+
+        {/* Step 2: Upload */}
+        <Card className="border-0 shadow-soft overflow-hidden">
+          <CardContent className="p-0">
+            <div className="flex flex-col md:flex-row">
+              <div className="bg-gradient-to-br from-primary/10 to-purple-500/10 p-6 md:p-8 md:w-16 flex items-center justify-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-xl">
+                  2
+                </div>
+              </div>
+              <div className="p-6 md:p-8 flex-1">
+                <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
+                  <Upload className="h-5 w-5 text-primary" />
+                  Upload Your Files
+                </h2>
+                <p className="text-muted-foreground mb-4">
+                  Go to the Upload page and drag the entire folder (or select all files) into the upload area.
+                </p>
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">Drag & drop</span> - Simply drag the folder from your desktop into the upload box
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">Or click to browse</span> - Click the upload area, navigate to your folder, select all files (Ctrl+A), and click Open
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">Fill in the details</span> - Add the facility name and study type, then click Upload
+                    </p>
+                  </div>
+                </div>
+                <Link href="/patient/files/upload">
+                  <Button className="gap-2 btn-glow shadow-lg shadow-primary/25">
+                    <Upload className="h-4 w-4" />
+                    Go to Upload
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Step 3: Share */}
+        <Card className="border-0 shadow-soft overflow-hidden">
+          <CardContent className="p-0">
+            <div className="flex flex-col md:flex-row">
+              <div className="bg-gradient-to-br from-primary/10 to-purple-500/10 p-6 md:p-8 md:w-16 flex items-center justify-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-xl">
+                  3
+                </div>
+              </div>
+              <div className="p-6 md:p-8 flex-1">
+                <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
+                  <Share2 className="h-5 w-5 text-primary" />
+                  Share with Your Provider
+                </h2>
+                <p className="text-muted-foreground mb-4">
+                  Once uploaded, go to My Files, find your study, and click &quot;Share&quot; to get a link.
+                </p>
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">Click Share</span> - On your uploaded study, click the Share button
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">Copy the link</span> - Click &quot;Create Share Link&quot; and copy it
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">Send to your provider</span> - Email, text, or message the link to your healthcare provider
+                    </p>
+                  </div>
+                </div>
+                <Link href="/patient/files">
+                  <Button variant="outline" className="gap-2">
+                    <FolderOpen className="h-4 w-4" />
+                    Go to My Files
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* That's it! */}
+      <div className="text-center py-6">
+        <p className="text-muted-foreground">
+          That&apos;s it! Your provider will create a free account to securely view your imaging.
+        </p>
+      </div>
+    </div>
   );
 }

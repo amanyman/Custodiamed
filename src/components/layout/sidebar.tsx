@@ -11,8 +11,6 @@ import {
   FolderOpen,
   Upload,
   Users,
-  Share2,
-  Settings,
   LogOut,
   Mail,
   FileText,
@@ -28,11 +26,9 @@ interface NavItem {
 }
 
 const patientNavItems: NavItem[] = [
-  { title: "Dashboard", href: "/patient", icon: LayoutDashboard },
+  { title: "Getting Started", href: "/patient", icon: LayoutDashboard },
+  { title: "Upload Files", href: "/patient/files/upload", icon: Upload },
   { title: "My Files", href: "/patient/files", icon: FolderOpen },
-  { title: "Upload", href: "/patient/files/upload", icon: Upload },
-  { title: "My Providers", href: "/patient/providers", icon: Users },
-  { title: "Shared Files", href: "/patient/shares", icon: Share2 },
 ];
 
 const providerNavItems: NavItem[] = [
@@ -76,9 +72,19 @@ export function Sidebar({ role }: SidebarProps) {
       <ScrollArea className="flex-1 px-4 py-6">
         <nav className="flex flex-col gap-2">
           {navItems.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              (item.href !== `/${role}` && pathname.startsWith(item.href));
+            // Smart matching: exact match, or starts with (for nested pages like /files/study/[id])
+            // but exclude when a more specific nav item matches (upload is under files)
+            let isActive = pathname === item.href;
+            if (!isActive && item.href !== `/${role}`) {
+              const startsWithHref = pathname.startsWith(item.href);
+              // Check if another nav item is a more specific match
+              const hasMoreSpecificMatch = navItems.some(
+                other => other.href !== item.href &&
+                         pathname.startsWith(other.href) &&
+                         other.href.length > item.href.length
+              );
+              isActive = startsWithHref && !hasMoreSpecificMatch;
+            }
 
             return (
               <Link key={item.href} href={item.href}>
@@ -122,23 +128,7 @@ export function Sidebar({ role }: SidebarProps) {
       <Separator className="opacity-50" />
 
       {/* Footer */}
-      <div className="p-4 space-y-2">
-        <Link href={`/${role}/settings`}>
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start gap-3 h-12 px-4 font-medium",
-              pathname === `/${role}/settings`
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-            )}
-          >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg">
-              <Settings className="h-5 w-5" />
-            </div>
-            Settings
-          </Button>
-        </Link>
+      <div className="p-4">
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 h-12 px-4 font-medium text-destructive hover:text-destructive hover:bg-destructive/10"
