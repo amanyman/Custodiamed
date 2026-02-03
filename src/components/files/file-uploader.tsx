@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import { Upload, X, FileImage, Loader2, CheckCircle, CloudUpload, Sparkles } from "lucide-react";
+import { Upload, X, FileImage, Loader2, CheckCircle, CloudUpload, Sparkles, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -21,49 +21,92 @@ interface FileWithPreview extends File {
 interface UploadedFile {
   file: FileWithPreview;
   progress: number;
-  status: "pending" | "uploading" | "success" | "error";
+  status: "pending" | "uploading" | "success" | "error" | "skipped";
   error?: string;
 }
 
-const ACCEPTED_FILE_TYPES = {
-  "application/dicom": [".dcm"],
-  "image/jpeg": [".jpg", ".jpeg"],
-  "image/png": [".png"],
-};
+// Files to skip (not medical files)
+const SKIP_EXTENSIONS = ['.bat', '.exe', '.dll', '.ini', '.txt', '.log', '.xml', '.html', '.htm', '.css', '.js', '.json', '.md', '.pdf', '.doc', '.docx'];
+const SKIP_FILENAMES = ['run.bat', 'autorun.inf', 'desktop.ini', 'thumbs.db', '.ds_store'];
 
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+// Check if file is likely a DICOM file
+function isDicomFile(file: File): boolean {
+  const name = file.name.toLowerCase();
+  // Explicit DICOM extension
+  if (name.endsWith('.dcm') || name.endsWith('.dicom')) return true;
+  // DICOM files often have no extension or numeric names
+  if (!name.includes('.') || /^\d+$/.test(name.split('/').pop() || '')) return true;
+  // Check for common DICOM filename patterns
+  if (/^[a-z]{2}\d+$/i.test(name) || /^im\d+$/i.test(name) || /^mr\d+$/i.test(name) || /^ct\d+$/i.test(name)) return true;
+  return false;
+}
+
+// Check if file is an image
+function isImageFile(file: File): boolean {
+  const name = file.name.toLowerCase();
+  return name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png') || file.type.startsWith('image/');
+}
+
+// Check if file should be skipped
+function shouldSkipFile(file: File): boolean {
+  const name = file.name.toLowerCase();
+  if (SKIP_FILENAMES.includes(name)) return true;
+  for (const ext of SKIP_EXTENSIONS) {
+    if (name.endsWith(ext)) return true;
+  }
+  return false;
+}
+
+// Check if file is a valid medical file
+function isMedicalFile(file: File): boolean {
+  if (shouldSkipFile(file)) return false;
+  return isDicomFile(file) || isImageFile(file);
+}
+
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB for DICOM folders
 
 export function FileUploader({ patientId }: { patientId: string }) {
   const router = useRouter();
   const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [skippedCount, setSkippedCount] = useState(0);
   const [description, setDescription] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [overallProgress, setOverallProgress] = useState(0);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    const newFiles: UploadedFile[] = acceptedFiles.map((file) => ({
-      file: Object.assign(file, {
-        preview: file.type.startsWith("image/")
-          ? URL.createObjectURL(file)
-          : undefined,
-      }),
-      progress: 0,
-      status: "pending",
-    }));
+    let skipped = 0;
+    const medicalFiles: UploadedFile[] = [];
 
-    setFiles((prev) => [...prev, ...newFiles]);
+    acceptedFiles.forEach((file) => {
+      if (isMedicalFile(file)) {
+        medicalFiles.push({
+          file: Object.assign(file, {
+            preview: file.type.startsWith("image/")
+              ? URL.createObjectURL(file)
+              : undefined,
+          }),
+          progress: 0,
+          status: "pending",
+        });
+      } else {
+        skipped++;
+      }
+    });
+
+    if (skipped > 0) {
+      setSkippedCount((prev) => prev + skipped);
+    }
+
+    if (medicalFiles.length > 0) {
+      setFiles((prev) => [...prev, ...medicalFiles]);
+      toast.success(`Added ${medicalFiles.length} medical file${medicalFiles.length > 1 ? 's' : ''}`);
+    }
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: ACCEPTED_FILE_TYPES,
     maxSize: MAX_FILE_SIZE,
-    onDropRejected: (rejections) => {
-      rejections.forEach((rejection) => {
-        rejection.errors.forEach((error) => {
-          toast.error(`${rejection.file.name}: ${error.message}`);
-        });
-      });
-    },
+    multiple: true,
   });
 
   const removeFile = (index: number) => {
@@ -85,7 +128,10 @@ export function FileUploader({ patientId }: { patientId: string }) {
     }
 
     setIsUploading(true);
+    setOverallProgress(0);
     const supabase = createClient();
+    const totalFiles = files.filter(f => f.status !== "success").length;
+    let completedFiles = 0;
 
     for (let i = 0; i < files.length; i++) {
       const uploadedFile = files[i];
@@ -94,17 +140,19 @@ export function FileUploader({ patientId }: { patientId: string }) {
       // Update status to uploading
       setFiles((prev) => {
         const newFiles = [...prev];
-        newFiles[i] = { ...newFiles[i], status: "uploading" };
+        newFiles[i] = { ...newFiles[i], status: "uploading", progress: 0 };
         return newFiles;
       });
 
       try {
         // Generate unique file path
-        const fileExt = uploadedFile.file.name.split(".").pop();
+        const fileExt = uploadedFile.file.name.includes('.')
+          ? uploadedFile.file.name.split(".").pop()
+          : 'dcm'; // Default to dcm for DICOM files without extension
         const fileName = `${crypto.randomUUID()}.${fileExt}`;
         const filePath = `${patientId}/${fileName}`;
 
-        // Upload to Supabase Storage
+        // Upload to Supabase Storage with progress tracking
         const { error: uploadError } = await supabase.storage
           .from("medical-files")
           .upload(filePath, uploadedFile.file, {
@@ -112,10 +160,17 @@ export function FileUploader({ patientId }: { patientId: string }) {
             upsert: false,
           });
 
+        // Simulate progress updates (Supabase doesn't provide real progress)
+        setFiles((prev) => {
+          const newFiles = [...prev];
+          newFiles[i] = { ...newFiles[i], progress: 50 };
+          return newFiles;
+        });
+
         if (uploadError) throw uploadError;
 
         // Determine file type
-        const fileType = uploadedFile.file.name.endsWith(".dcm")
+        const fileType = isDicomFile(uploadedFile.file)
           ? "dicom"
           : uploadedFile.file.type.startsWith("image/")
             ? "image"
@@ -130,7 +185,7 @@ export function FileUploader({ patientId }: { patientId: string }) {
             file_type: fileType,
             file_size: uploadedFile.file.size,
             storage_path: filePath,
-            mime_type: uploadedFile.file.type || null,
+            mime_type: uploadedFile.file.type || "application/dicom",
             description: description || null,
           })
           .select()
@@ -150,16 +205,20 @@ export function FileUploader({ patientId }: { patientId: string }) {
           },
         });
 
+        completedFiles++;
+        setOverallProgress(Math.round((completedFiles / totalFiles) * 100));
+
         // Update status to success
         setFiles((prev) => {
           const newFiles = [...prev];
           newFiles[i] = { ...newFiles[i], status: "success", progress: 100 };
           return newFiles;
         });
-
-        toast.success(`${uploadedFile.file.name} uploaded successfully`);
       } catch (error) {
         console.error("Upload error:", error);
+        completedFiles++;
+        setOverallProgress(Math.round((completedFiles / totalFiles) * 100));
+
         setFiles((prev) => {
           const newFiles = [...prev];
           newFiles[i] = {
@@ -175,11 +234,10 @@ export function FileUploader({ patientId }: { patientId: string }) {
 
     setIsUploading(false);
 
-    // Redirect if all files uploaded successfully
-    const allSuccess = files.every(
-      (f) => f.status === "success" || f.status === "pending"
-    );
-    if (allSuccess && files.some((f) => f.status === "success")) {
+    // Count successes
+    const successCount = files.filter(f => f.status === "success").length;
+    if (successCount > 0) {
+      toast.success(`Successfully uploaded ${successCount} file${successCount > 1 ? 's' : ''}`);
       router.push("/patient/files");
       router.refresh();
     }
@@ -222,7 +280,7 @@ export function FileUploader({ patientId }: { patientId: string }) {
         <div className="mt-6 flex items-center justify-center gap-6 text-sm text-muted-foreground">
           <span className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-primary/50" />
-            DICOM (.dcm)
+            DICOM files
           </span>
           <span className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-primary/50" />
@@ -230,7 +288,7 @@ export function FileUploader({ patientId }: { patientId: string }) {
           </span>
           <span className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-primary/50" />
-            Max 100MB
+            Folders supported
           </span>
         </div>
 
@@ -240,12 +298,33 @@ export function FileUploader({ patientId }: { patientId: string }) {
         )}
       </div>
 
+      {/* Skipped files notice */}
+      {skippedCount > 0 && (
+        <div className="flex items-center gap-3 rounded-xl bg-muted/50 border border-border p-4 animate-fade-in-up">
+          <AlertCircle className="h-5 w-5 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">
+            {skippedCount} non-medical file{skippedCount > 1 ? 's were' : ' was'} automatically skipped (e.g., .bat, .exe, .txt files)
+          </p>
+        </div>
+      )}
+
+      {/* Overall Progress */}
+      {isUploading && (
+        <div className="space-y-2 animate-fade-in-up">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium">Uploading files...</span>
+            <span className="text-muted-foreground">{overallProgress}%</span>
+          </div>
+          <Progress value={overallProgress} className="h-2" />
+        </div>
+      )}
+
       {/* File List */}
       {files.length > 0 && (
         <div className="space-y-4 animate-fade-in-up">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold text-lg">Selected Files ({files.length})</h3>
+            <h3 className="font-semibold text-lg">Medical Files ({files.length})</h3>
           </div>
           <div className="space-y-3">
             {files.map((uploadedFile, index) => (
