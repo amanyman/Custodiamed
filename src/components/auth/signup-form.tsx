@@ -9,10 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signupSchema, type SignupInput } from "@/lib/validations/auth";
 import { createClient } from "@/lib/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 
-export function SignupForm() {
+interface SignupFormProps {
+  providerId?: string;
+  providerName?: string | null;
+}
+
+export function SignupForm({ providerId, providerName }: SignupFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -35,6 +40,7 @@ export function SignupForm() {
         data: {
           full_name: data.fullName,
           role: "patient",
+          invited_by_provider: providerId || null,
         },
       },
     });
@@ -43,6 +49,25 @@ export function SignupForm() {
       toast.error(error.message);
       setIsLoading(false);
       return;
+    }
+
+    // If user is created and session exists, create the provider relationship
+    if (authData.user && authData.session && providerId) {
+      // Get the patient record
+      const { data: patient } = await supabase
+        .from("patients")
+        .select("id")
+        .eq("user_id", authData.user.id)
+        .single();
+
+      if (patient) {
+        // Create the relationship
+        await supabase.from("patient_provider_relationships").insert({
+          patient_id: patient.id,
+          provider_id: providerId,
+          status: "active",
+        });
+      }
     }
 
     // If user is created and session exists, redirect to dashboard
@@ -61,6 +86,15 @@ export function SignupForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {providerName && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 text-sm">
+          <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+          <span>
+            You&apos;ll be automatically connected to <strong>{providerName}</strong>
+          </span>
+        </div>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="fullName">Full Name</Label>
         <Input

@@ -33,10 +33,9 @@ const patientNavItems: NavItem[] = [
 ];
 
 const providerNavItems: NavItem[] = [
-  { title: "Dashboard", href: "/provider", icon: LayoutDashboard },
-  { title: "My Patients", href: "/provider/patients", icon: Users },
-  { title: "Received Files", href: "/provider/received", icon: FileText },
-  { title: "Invitations", href: "/provider/invitations", icon: Mail },
+  { title: "Getting Started", href: "/provider", icon: LayoutDashboard },
+  { title: "Shared Studies", href: "/provider/studies", icon: FileText },
+  { title: "Invite Patient", href: "/provider/invite", icon: Mail },
 ];
 
 interface SidebarProps {
