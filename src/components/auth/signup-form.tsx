@@ -17,6 +17,25 @@ interface SignupFormProps {
   providerName?: string | null;
 }
 
+// Helper to wait for patient record to be created by trigger
+async function waitForPatientRecord(supabase: ReturnType<typeof createClient>, userId: string, maxAttempts = 10): Promise<string | null> {
+  for (let i = 0; i < maxAttempts; i++) {
+    const { data: patient } = await supabase
+      .from("patients")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (patient?.id) {
+      return patient.id;
+    }
+
+    // Wait 500ms before retrying
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  return null;
+}
+
 export function SignupForm({ providerId, providerName }: SignupFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -33,52 +52,53 @@ export function SignupForm({ providerId, providerName }: SignupFormProps) {
     setIsLoading(true);
     const supabase = createClient();
 
-    const { data: authData, error } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
-      options: {
-        data: {
-          full_name: data.fullName,
-          role: "patient",
-          invited_by_provider: providerId || null,
+    try {
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            full_name: data.fullName,
+            role: "patient",
+            invited_by_provider: providerId || null,
+          },
         },
-      },
-    });
+      });
 
-    if (error) {
-      toast.error(error.message);
-      setIsLoading(false);
-      return;
-    }
-
-    // If user is created and session exists, create the provider relationship
-    if (authData.user && authData.session && providerId) {
-      // Get the patient record
-      const { data: patient } = await supabase
-        .from("patients")
-        .select("id")
-        .eq("user_id", authData.user.id)
-        .single();
-
-      if (patient) {
-        // Create the relationship
-        await supabase.from("patient_provider_relationships").insert({
-          patient_id: patient.id,
-          provider_id: providerId,
-          status: "active",
-        });
+      if (error) {
+        toast.error(error.message);
+        setIsLoading(false);
+        return;
       }
-    }
 
-    // If user is created and session exists, redirect to dashboard
-    if (authData.user && authData.session) {
-      toast.success("Account created successfully!");
-      router.push("/patient");
-      router.refresh();
-    } else if (authData.user && !authData.session) {
-      // Email confirmation is required
-      toast.success("Check your email to confirm your account");
-      router.push("/login");
+      // If user is created and session exists, create the provider relationship
+      if (authData.user && authData.session && providerId) {
+        // Wait for the patient record to be created by the database trigger
+        const patientId = await waitForPatientRecord(supabase, authData.user.id);
+
+        if (patientId) {
+          // Create the relationship
+          await supabase.from("patient_provider_relationships").insert({
+            patient_id: patientId,
+            provider_id: providerId,
+            status: "active",
+          });
+        }
+      }
+
+      // If user is created and session exists, redirect to dashboard
+      if (authData.user && authData.session) {
+        toast.success("Account created successfully!");
+        router.push("/patient");
+        router.refresh();
+      } else if (authData.user && !authData.session) {
+        // Email confirmation is required
+        toast.success("Check your email to confirm your account");
+        router.push("/login");
+      }
+    } catch (err) {
+      console.error("Signup error:", err);
+      toast.error("An error occurred during signup. Please try again.");
     }
 
     setIsLoading(false);

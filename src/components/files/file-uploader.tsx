@@ -223,6 +223,40 @@ export function FileUploader({ patientId }: { patientId: string }) {
         setTimeRemaining(formatTime(remainingSeconds));
       }
 
+      // Auto-share with connected providers
+      const { data: relationships } = await supabase
+        .from("patient_provider_relationships")
+        .select("provider_id")
+        .eq("patient_id", patientId)
+        .eq("status", "active");
+
+      if (relationships && relationships.length > 0) {
+        // Get all the medical files we just created for this study
+        const { data: studyFiles } = await supabase
+          .from("medical_files")
+          .select("id")
+          .eq("study_id", study.id);
+
+        if (studyFiles) {
+          // Create file shares for each file with each connected provider
+          const shareRecords = [];
+          for (const rel of relationships) {
+            for (const file of studyFiles) {
+              shareRecords.push({
+                file_id: file.id,
+                patient_id: patientId,
+                provider_id: rel.provider_id,
+                status: "active",
+              });
+            }
+          }
+
+          if (shareRecords.length > 0) {
+            await supabase.from("file_shares").insert(shareRecords);
+          }
+        }
+      }
+
       setStep("complete");
       toast.success("Upload complete!");
 
