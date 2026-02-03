@@ -204,11 +204,12 @@ export default function ShareStudyPage({
       if (result.success) {
         toast.success("Invitation email sent successfully!");
       } else {
-        toast.success("Invitation created! Share the link with your provider.");
+        console.error("Email API error:", result);
+        toast.success("Invitation created! Copy the link to share.");
       }
     } catch (error) {
       console.error("Invite error:", error);
-      toast.error("Failed to create invitation. Please try again.");
+      toast.error("Failed to create invitation: " + (error instanceof Error ? error.message : "Unknown error"));
     } finally {
       setIsSendingInvite(false);
     }
