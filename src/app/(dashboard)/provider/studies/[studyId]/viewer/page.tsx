@@ -108,17 +108,21 @@ export default async function ViewerPage({ params }: ViewerPageProps) {
     }
   }
 
-  // Get signed URLs for all files
-  const imageUrls: string[] = [];
-  for (const file of files) {
-    if (file.storage_path) {
-      const { data: signedUrl } = await supabase.storage
-        .from("medical-files")
-        .createSignedUrl(file.storage_path, 3600); // 1 hour expiry
+  // Get signed URLs for all files in bulk
+  const storagePaths = files
+    .filter(file => file.storage_path)
+    .map(file => file.storage_path);
 
-      if (signedUrl?.signedUrl) {
-        imageUrls.push(signedUrl.signedUrl);
-      }
+  let imageUrls: string[] = [];
+  if (storagePaths.length > 0) {
+    const { data: signedUrls } = await supabase.storage
+      .from("medical-files")
+      .createSignedUrls(storagePaths, 3600); // 1 hour expiry
+
+    if (signedUrls) {
+      imageUrls = signedUrls
+        .filter(item => item.signedUrl)
+        .map(item => item.signedUrl);
     }
   }
 
