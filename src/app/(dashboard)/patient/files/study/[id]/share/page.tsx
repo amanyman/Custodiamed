@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Share2, User, Loader2, CheckCircle, Building2, Mail, Send } from "lucide-react";
+import { ArrowLeft, Share2, User, Loader2, CheckCircle, Building2, Mail, Send, Copy, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 import { use } from "react";
 
@@ -43,6 +43,8 @@ export default function ShareStudyPage({
   const [inviteName, setInviteName] = useState("");
   const [inviteMessage, setInviteMessage] = useState("");
   const [isSendingInvite, setIsSendingInvite] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -169,44 +171,26 @@ export default function ShareStudyPage({
 
       if (error) throw error;
 
-      // Get patient profile for the email
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", user?.id)
-        .single();
+      // Generate the invite link
+      const siteUrl = window.location.origin;
+      const link = `${siteUrl}/provider-invite/${invitation.token}`;
+      setInviteLink(link);
 
-      // Send invitation email via API
-      const response = await fetch("/api/invitations/send-provider-invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          invitationId: invitation.id,
-          token: invitation.token,
-          providerEmail: inviteEmail,
-          providerName: inviteName,
-          patientName: profile?.full_name || "A patient",
-          studyType: study?.study_type || study?.modality,
-          studyDate: study?.study_date,
-          message: inviteMessage,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to send email");
-      }
-
-      toast.success("Invitation sent successfully!");
-      setInviteEmail("");
-      setInviteName("");
-      setInviteMessage("");
-      router.push("/patient/files");
+      toast.success("Invitation created! Share the link with your provider.");
     } catch (error) {
       console.error("Invite error:", error);
-      toast.error("Failed to send invitation. Please try again.");
+      toast.error("Failed to create invitation. Please try again.");
     } finally {
       setIsSendingInvite(false);
+    }
+  };
+
+  const copyLink = () => {
+    if (inviteLink) {
+      navigator.clipboard.writeText(inviteLink);
+      setLinkCopied(true);
+      toast.success("Link copied to clipboard!");
+      setTimeout(() => setLinkCopied(false), 2000);
     }
   };
 
@@ -324,77 +308,146 @@ export default function ShareStudyPage({
 
         {/* Invite new provider */}
         <TabsContent value="invite">
-          <Card className="border-0 shadow-soft">
-            <CardHeader>
-              <CardTitle>Invite a Healthcare Provider</CardTitle>
-              <CardDescription>
-                Send an email invitation to your doctor or specialist to view this study
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="providerEmail">Provider&apos;s Email *</Label>
-                <Input
-                  id="providerEmail"
-                  type="email"
-                  placeholder="doctor@hospital.com"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  className="h-12"
-                />
-              </div>
+          {inviteLink ? (
+            // Show the generated link
+            <Card className="border-2 border-green-200 bg-green-50">
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg text-green-800">Invitation Created!</h3>
+                    <p className="text-sm text-green-700">Share this link with your provider</p>
+                  </div>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="providerName">Provider&apos;s Name (optional)</Label>
-                <Input
-                  id="providerName"
-                  placeholder="Dr. Smith"
-                  value={inviteName}
-                  onChange={(e) => setInviteName(e.target.value)}
-                  className="h-12"
-                />
-              </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={inviteLink}
+                    readOnly
+                    className="h-12 bg-white text-sm"
+                  />
+                  <Button
+                    onClick={copyLink}
+                    variant="outline"
+                    className="h-12 px-4 shrink-0"
+                  >
+                    {linkCopied ? (
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                    ) : (
+                      <Copy className="h-5 w-5" />
+                    )}
+                  </Button>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="message">Personal Message (optional)</Label>
-                <Textarea
-                  id="message"
-                  placeholder="Hi Dr. Smith, I'm sharing my recent MRI scan for your review..."
-                  value={inviteMessage}
-                  onChange={(e) => setInviteMessage(e.target.value)}
-                  className="min-h-[100px] resize-none"
-                />
-              </div>
+                <div className="bg-white/50 rounded-xl p-4 text-sm">
+                  <p className="font-medium text-green-800 mb-2">How to share:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-green-700">
+                    <li>Copy the link above</li>
+                    <li>Send it to your provider via email, text, or any messaging app</li>
+                    <li>They&apos;ll create an account and view your study</li>
+                  </ol>
+                </div>
 
-              <div className="bg-muted/50 rounded-xl p-4 text-sm text-muted-foreground">
-                <p className="font-medium text-foreground mb-1">What happens next?</p>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>Your provider will receive a professional email invitation</li>
-                  <li>They&apos;ll create a free CustodiaMed account (if they don&apos;t have one)</li>
-                  <li>Once registered, they can immediately view your shared study</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setInviteLink(null);
+                      setInviteEmail("");
+                      setInviteName("");
+                      setInviteMessage("");
+                    }}
+                    className="flex-1 h-12"
+                  >
+                    Create Another
+                  </Button>
+                  <Button
+                    onClick={() => router.push("/patient/files")}
+                    className="flex-1 h-12 btn-glow"
+                  >
+                    Done
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            // Show the form
+            <>
+              <Card className="border-0 shadow-soft">
+                <CardHeader>
+                  <CardTitle>Invite a Healthcare Provider</CardTitle>
+                  <CardDescription>
+                    Create a secure link to share this study with your doctor
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="providerEmail">Provider&apos;s Email *</Label>
+                    <Input
+                      id="providerEmail"
+                      type="email"
+                      placeholder="doctor@hospital.com"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
 
-          <Button
-            onClick={handleInviteProvider}
-            disabled={!inviteEmail || isSendingInvite}
-            size="lg"
-            className="w-full h-14 text-lg font-medium btn-glow shadow-lg shadow-primary/25"
-          >
-            {isSendingInvite ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Sending Invitation...
-              </>
-            ) : (
-              <>
-                <Send className="mr-2 h-5 w-5" />
-                Send Invitation
-              </>
-            )}
-          </Button>
+                  <div className="space-y-2">
+                    <Label htmlFor="providerName">Provider&apos;s Name (optional)</Label>
+                    <Input
+                      id="providerName"
+                      placeholder="Dr. Smith"
+                      value={inviteName}
+                      onChange={(e) => setInviteName(e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="message">Personal Message (optional)</Label>
+                    <Textarea
+                      id="message"
+                      placeholder="Hi Dr. Smith, I'm sharing my recent MRI scan for your review..."
+                      value={inviteMessage}
+                      onChange={(e) => setInviteMessage(e.target.value)}
+                      className="min-h-[100px] resize-none"
+                    />
+                  </div>
+
+                  <div className="bg-muted/50 rounded-xl p-4 text-sm text-muted-foreground">
+                    <p className="font-medium text-foreground mb-1">What happens next?</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      <li>You&apos;ll get a secure link to share with your provider</li>
+                      <li>They&apos;ll create a free CustodiaMed account (if needed)</li>
+                      <li>Once registered, they can immediately view your study</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Button
+                onClick={handleInviteProvider}
+                disabled={!inviteEmail || isSendingInvite}
+                size="lg"
+                className="w-full h-14 text-lg font-medium btn-glow shadow-lg shadow-primary/25"
+              >
+                {isSendingInvite ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Creating Invitation...
+                  </>
+                ) : (
+                  <>
+                    <LinkIcon className="mr-2 h-5 w-5" />
+                    Create Invitation Link
+                  </>
+                )}
+              </Button>
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </div>
