@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
     // Send email via Resend
     const { data, error } = await resend.emails.send({
-      from: "CustodiaMed <noreply@custodiamed.com>",
+      from: process.env.RESEND_FROM_EMAIL || "CustodiaMed <onboarding@resend.dev>",
       to: [providerEmail],
       subject: `${patientName} shared medical imaging with you`,
       html: `
