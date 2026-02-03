@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/header";
 
 export default async function PatientLayout({
   children,
@@ -62,19 +61,16 @@ export default async function PatientLayout({
 
   return (
     <div className="flex h-screen">
-      <Sidebar role="patient" />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header
-          user={{
-            email: profile.email,
-            full_name: profile.full_name,
-            role: "patient",
-          }}
-        />
-        <main className="flex-1 overflow-auto bg-background p-6">
-          {children}
-        </main>
-      </div>
+      <Sidebar
+        role="patient"
+        user={{
+          email: profile.email,
+          full_name: profile.full_name,
+        }}
+      />
+      <main className="flex-1 overflow-auto bg-background p-6">
+        {children}
+      </main>
     </div>
   );
 }

@@ -6,6 +6,15 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   LayoutDashboard,
   FolderOpen,
@@ -15,6 +24,7 @@ import {
   Mail,
   FileText,
   ChevronRight,
+  Bell,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -40,9 +50,13 @@ const providerNavItems: NavItem[] = [
 
 interface SidebarProps {
   role: "patient" | "provider";
+  user?: {
+    email: string;
+    full_name: string;
+  };
 }
 
-export function Sidebar({ role }: SidebarProps) {
+export function Sidebar({ role, user }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const navItems = role === "patient" ? patientNavItems : providerNavItems;
@@ -54,16 +68,56 @@ export function Sidebar({ role }: SidebarProps) {
     router.refresh();
   };
 
+  const initials = user?.full_name
+    ?.split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "U";
+
   return (
     <div className="flex h-full w-72 flex-col border-r border-border/50 bg-gradient-to-b from-sidebar to-background">
-      {/* Logo */}
-      <div className="flex h-20 items-center px-6">
-        <Link href="/" className="group">
+      {/* Logo + Profile */}
+      <div className="flex h-20 items-center justify-between px-6">
+        <Link href={`/${role}`} className="group">
           <span className="text-2xl font-bold transition-transform duration-300 group-hover:scale-105 inline-block">
             Custodia<span className="text-primary">Med.</span>
           </span>
-          <p className="text-xs text-muted-foreground capitalize mt-0.5">{role} Portal</p>
         </Link>
+
+        {user && (
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="relative h-9 w-9">
+              <Bell className="h-4 w-4" />
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium">{user.full_name}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="cursor-pointer text-destructive focus:text-destructive"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
       </div>
 
       <Separator className="opacity-50" />
@@ -124,22 +178,6 @@ export function Sidebar({ role }: SidebarProps) {
           })}
         </nav>
       </ScrollArea>
-
-      <Separator className="opacity-50" />
-
-      {/* Footer */}
-      <div className="p-4">
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-3 h-12 px-4 font-medium text-destructive hover:text-destructive hover:bg-destructive/10"
-          onClick={handleLogout}
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg">
-            <LogOut className="h-5 w-5" />
-          </div>
-          Log out
-        </Button>
-      </div>
     </div>
   );
 }
