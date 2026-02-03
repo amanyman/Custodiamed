@@ -38,6 +38,24 @@ const MODALITY_OPTIONS = [
   { value: "Other", label: "Other" },
 ];
 
+const MRI_TYPES = [
+  "Brain MRI",
+  "Spine MRI",
+  "Lumbar MRI",
+  "Cervical MRI",
+  "Thoracic MRI",
+  "Knee MRI",
+  "Shoulder MRI",
+  "Hip MRI",
+  "Ankle MRI",
+  "Wrist MRI",
+  "Abdominal MRI",
+  "Pelvic MRI",
+  "Cardiac MRI",
+  "Breast MRI",
+  "Other",
+];
+
 function isDicomFile(file: File): boolean {
   const name = file.name.toLowerCase();
   if (name.endsWith('.dcm') || name.endsWith('.dicom')) return true;
@@ -82,7 +100,11 @@ export function FileUploader({ patientId }: { patientId: string }) {
   // Study details
   const [studyDate, setStudyDate] = useState(new Date().toISOString().split('T')[0]);
   const [modality, setModality] = useState("");
+  const [studyType, setStudyType] = useState("");
   const [description, setDescription] = useState("");
+  const [facilityName, setFacilityName] = useState("");
+  const [facilityPhone, setFacilityPhone] = useState("");
+  const [facilityEmail, setFacilityEmail] = useState("");
 
   // Upload progress
   const [uploadedCount, setUploadedCount] = useState(0);
@@ -142,7 +164,11 @@ export function FileUploader({ patientId }: { patientId: string }) {
           patient_id: patientId,
           study_date: studyDate,
           modality: modality,
+          study_type: studyType || null,
           description: description || null,
+          facility_name: facilityName || null,
+          facility_phone: facilityPhone || null,
+          facility_email: facilityEmail || null,
           file_count: files.length,
           total_size: totalBytes,
         })
@@ -259,15 +285,71 @@ export function FileUploader({ patientId }: { patientId: string }) {
               </div>
             </div>
 
+            {modality === "MRI" && (
+              <div className="space-y-2">
+                <Label htmlFor="studyType">MRI Type (optional)</Label>
+                <Select value={studyType} onValueChange={setStudyType}>
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder="Select MRI type..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MRI_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="description">Description (optional)</Label>
               <Input
                 id="description"
-                placeholder="e.g., Lower back MRI, Follow-up scan..."
+                placeholder="e.g., Follow-up scan, Post-surgery check..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="h-12"
               />
+            </div>
+
+            <div className="border-t pt-4 mt-4">
+              <p className="text-sm font-medium mb-4">Facility Information (optional)</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="facilityName">Facility Name</Label>
+                  <Input
+                    id="facilityName"
+                    placeholder="e.g., City Medical Center"
+                    value={facilityName}
+                    onChange={(e) => setFacilityName(e.target.value)}
+                    className="h-12"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="facilityPhone">Phone Number</Label>
+                  <Input
+                    id="facilityPhone"
+                    type="tel"
+                    placeholder="(555) 123-4567"
+                    value={facilityPhone}
+                    onChange={(e) => setFacilityPhone(e.target.value)}
+                    className="h-12"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="facilityEmail">Email Address</Label>
+                  <Input
+                    id="facilityEmail"
+                    type="email"
+                    placeholder="records@facility.com"
+                    value={facilityEmail}
+                    onChange={(e) => setFacilityEmail(e.target.value)}
+                    className="h-12"
+                  />
+                </div>
+              </div>
             </div>
 
             <Button

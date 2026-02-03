@@ -4,7 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Upload, FileImage, FolderOpen, Calendar, HardDrive, Share2 } from "lucide-react";
+import { Upload, FileImage, FolderOpen, Calendar, HardDrive, Share2, Trash2, MoreVertical, Building2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default async function FilesPage() {
   const supabase = await createClient();
@@ -86,36 +92,84 @@ export default async function FilesPage() {
           {hasStudies && (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {studies.map((study) => (
-                <Link key={study.id} href={`/patient/files/study/${study.id}`}>
-                  <Card className="overflow-hidden border-0 shadow-soft hover:shadow-soft-lg transition-all duration-300 cursor-pointer group">
-                    <div className="aspect-[4/3] bg-gradient-to-br from-primary/10 to-purple-500/10 flex items-center justify-center relative">
+                <Card key={study.id} className="overflow-hidden border-0 shadow-soft hover:shadow-soft-lg transition-all duration-300 group">
+                  <Link href={`/patient/files/study/${study.id}`}>
+                    <div className="aspect-[4/3] bg-gradient-to-br from-primary/10 to-purple-500/10 flex items-center justify-center relative cursor-pointer">
                       <FolderOpen className="h-16 w-16 text-primary/50 group-hover:scale-110 transition-transform" />
                       <Badge className="absolute top-3 right-3" variant="secondary">
                         {study.file_count} files
                       </Badge>
                     </div>
-                    <CardContent className="p-4">
-                      <div className="space-y-2">
-                        <h3 className="font-semibold text-lg">{study.modality}</h3>
-                        {study.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-1">
-                            {study.description}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            {new Date(study.study_date).toLocaleDateString()}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <HardDrive className="h-4 w-4" />
-                            {(study.total_size / 1024 / 1024).toFixed(1)} MB
-                          </span>
-                        </div>
+                  </Link>
+                  <CardContent className="p-4">
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between">
+                        <Link href={`/patient/files/study/${study.id}`} className="flex-1">
+                          <h3 className="font-semibold text-lg hover:text-primary transition-colors">
+                            {study.study_type || study.modality}
+                          </h3>
+                          {study.study_type && (
+                            <p className="text-sm text-muted-foreground">{study.modality}</p>
+                          )}
+                        </Link>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/patient/files/study/${study.id}`}>
+                                <FolderOpen className="mr-2 h-4 w-4" />
+                                View Files
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/patient/files/study/${study.id}/share`}>
+                                <Share2 className="mr-2 h-4 w-4" />
+                                Share Study
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive focus:text-destructive">
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete Study
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                      {study.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-1">
+                          {study.description}
+                        </p>
+                      )}
+                      {study.facility_name && (
+                        <p className="text-sm text-muted-foreground flex items-center gap-1">
+                          <Building2 className="h-3 w-3" />
+                          {study.facility_name}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          {new Date(study.study_date).toLocaleDateString()}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <HardDrive className="h-4 w-4" />
+                          {(study.total_size / 1024 / 1024).toFixed(1)} MB
+                        </span>
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <Link href={`/patient/files/study/${study.id}/share`} className="flex-1">
+                          <Button variant="outline" size="sm" className="w-full gap-1">
+                            <Share2 className="h-4 w-4" />
+                            Share
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}
