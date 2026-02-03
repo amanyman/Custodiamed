@@ -171,12 +171,41 @@ export default function ShareStudyPage({
 
       if (error) throw error;
 
+      // Get patient profile for the email
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user?.id)
+        .single();
+
+      // Send invitation email
+      const response = await fetch("/api/invitations/send-provider-invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: invitation.token,
+          providerEmail: inviteEmail,
+          providerName: inviteName,
+          patientName: profile?.full_name || "A patient",
+          studyType: study?.study_type || study?.modality,
+          studyDate: study?.study_date,
+          message: inviteMessage,
+        }),
+      });
+
+      const result = await response.json();
+
       // Generate the invite link
       const siteUrl = window.location.origin;
       const link = `${siteUrl}/provider-invite/${invitation.token}`;
       setInviteLink(link);
 
-      toast.success("Invitation created! Share the link with your provider.");
+      if (result.success) {
+        toast.success("Invitation email sent successfully!");
+      } else {
+        toast.success("Invitation created! Share the link with your provider.");
+      }
     } catch (error) {
       console.error("Invite error:", error);
       toast.error("Failed to create invitation. Please try again.");
