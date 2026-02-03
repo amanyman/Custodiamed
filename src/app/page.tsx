@@ -20,8 +20,6 @@ import {
   RotateCcw,
   Maximize,
   Grid3X3,
-  MousePointer2,
-  Move,
 } from "lucide-react";
 
 // Logo component
@@ -291,7 +289,6 @@ export default function LandingPage() {
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-3xl" />
           <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-3xl" />
-          <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5" />
         </div>
 
         <div className="relative mx-auto max-w-7xl px-6">
@@ -301,177 +298,108 @@ export default function LandingPage() {
               <span>For Healthcare Providers</span>
             </div>
             <h2 className="text-4xl font-bold md:text-5xl">
-              Medical-Grade Image Viewer
+              Professional DICOM Viewer
             </h2>
             <p className="mt-4 text-lg text-slate-300">
-              View DICOM images with professional tools - right in your browser. No software to install.
+              View patient imaging with medical-grade tools — right in your browser. No software to install.
             </p>
           </div>
 
-          {/* Viewer Mockup */}
-          <div className="relative max-w-5xl mx-auto">
-            <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-cyan-500/20 rounded-3xl blur-2xl" />
-            <div className="relative rounded-2xl bg-slate-950 border border-slate-700 shadow-2xl overflow-hidden">
-              {/* Viewer Header */}
-              <div className="bg-slate-900 px-4 py-3 border-b border-slate-700 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Logo className="text-lg" />
-                  <span className="text-slate-400 text-sm">DICOM Viewer</span>
+          {/* Features Grid */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {[
+              {
+                icon: ZoomIn,
+                title: "Zoom & Pan",
+                desc: "Smoothly navigate high-resolution DICOM images with intuitive scroll zoom and click-drag panning.",
+                color: "blue",
+              },
+              {
+                icon: Ruler,
+                title: "Measurement Tools",
+                desc: "Measure distances, angles, and areas with precision. Results displayed in mm, cm, or pixels.",
+                color: "cyan",
+              },
+              {
+                icon: Contrast,
+                title: "Window/Level Adjustment",
+                desc: "Fine-tune brightness and contrast to highlight different tissue densities and structures.",
+                color: "purple",
+              },
+              {
+                icon: Layers,
+                title: "Multi-planar Reconstruction",
+                desc: "View axial, sagittal, and coronal planes. Scroll through slices seamlessly.",
+                color: "pink",
+              },
+              {
+                icon: Grid3X3,
+                title: "Multi-image Layout",
+                desc: "Compare multiple series or timepoints side-by-side with customizable grid layouts.",
+                color: "indigo",
+              },
+              {
+                icon: RotateCcw,
+                title: "Image Manipulation",
+                desc: "Rotate, flip, and invert images. Reset to original with one click.",
+                color: "green",
+              },
+              {
+                icon: Maximize,
+                title: "Fullscreen Mode",
+                desc: "Expand to fullscreen for detailed analysis. Works on any monitor or display.",
+                color: "orange",
+              },
+              {
+                icon: Eye,
+                title: "Annotation Tools",
+                desc: "Add arrows, text labels, and region markers. Save annotations for future reference.",
+                color: "rose",
+              },
+              {
+                icon: Share2,
+                title: "Easy Sharing",
+                desc: "Share studies with colleagues via secure link. No account needed to view.",
+                color: "teal",
+              },
+            ].map((feature, i) => (
+              <div
+                key={i}
+                className="group relative rounded-2xl bg-slate-800/50 border border-slate-700 p-6 hover:bg-slate-800/80 hover:border-slate-600 transition-all duration-300"
+              >
+                <div className={`inline-flex h-12 w-12 items-center justify-center rounded-xl bg-${feature.color}-500/10 border border-${feature.color}-500/20 mb-4 group-hover:scale-110 transition-transform`}>
+                  <feature.icon className={`h-6 w-6 text-${feature.color}-400`} />
                 </div>
-                <div className="flex items-center gap-2 text-sm text-slate-400">
-                  <span>Patient: John D.</span>
-                  <span className="text-slate-600">|</span>
-                  <span>Brain MRI</span>
-                </div>
+                <h4 className="font-semibold text-lg text-white mb-2">{feature.title}</h4>
+                <p className="text-sm text-slate-400 leading-relaxed">{feature.desc}</p>
               </div>
+            ))}
+          </div>
 
-              {/* Viewer Content */}
-              <div className="flex">
-                {/* Toolbar */}
-                <div className="w-16 bg-slate-900/50 border-r border-slate-700 py-4 flex flex-col items-center gap-2">
-                  {[
-                    { icon: MousePointer2, label: "Select" },
-                    { icon: Move, label: "Pan" },
-                    { icon: ZoomIn, label: "Zoom" },
-                    { icon: Ruler, label: "Measure" },
-                    { icon: Contrast, label: "Window" },
-                    { icon: RotateCcw, label: "Reset" },
-                    { icon: Layers, label: "Layers" },
-                    { icon: Grid3X3, label: "Grid" },
-                    { icon: Maximize, label: "Fullscreen" },
-                  ].map((tool, i) => (
-                    <button
-                      key={i}
-                      className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-                        i === 0 ? "bg-blue-500/20 text-blue-400" : "text-slate-500 hover:text-slate-300 hover:bg-slate-800"
-                      }`}
-                      title={tool.label}
-                    >
-                      <tool.icon className="h-5 w-5" />
-                    </button>
-                  ))}
-                </div>
-
-                {/* Main Viewer Area */}
-                <div className="flex-1 p-4">
-                  <div className="relative aspect-square max-h-[400px] mx-auto bg-black rounded-lg overflow-hidden">
-                    {/* Simulated MRI Image */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <svg viewBox="0 0 400 400" className="w-full h-full opacity-90">
-                        <defs>
-                          <radialGradient id="brain" cx="50%" cy="50%" r="50%">
-                            <stop offset="0%" stopColor="#4a5568" />
-                            <stop offset="40%" stopColor="#2d3748" />
-                            <stop offset="70%" stopColor="#1a202c" />
-                            <stop offset="100%" stopColor="#000" />
-                          </radialGradient>
-                        </defs>
-                        {/* Skull outline */}
-                        <ellipse cx="200" cy="200" rx="150" ry="170" fill="url(#brain)" />
-                        {/* Brain structure simulation */}
-                        <ellipse cx="200" cy="180" rx="120" ry="130" fill="#374151" opacity="0.8" />
-                        <path d="M200 80 Q 280 150 280 200 Q 280 280 200 300 Q 120 280 120 200 Q 120 150 200 80" fill="#4b5563" opacity="0.6" />
-                        {/* Ventricles */}
-                        <ellipse cx="170" cy="180" rx="20" ry="35" fill="#1f2937" />
-                        <ellipse cx="230" cy="180" rx="20" ry="35" fill="#1f2937" />
-                        {/* Center line */}
-                        <line x1="200" y1="80" x2="200" y2="300" stroke="#6b7280" strokeWidth="1" opacity="0.3" />
-                      </svg>
-                    </div>
-
-                    {/* Overlay info */}
-                    <div className="absolute top-3 left-3 text-xs font-mono text-green-400 space-y-1">
-                      <div>W: 400 L: 40</div>
-                      <div>Slice: 12/24</div>
-                    </div>
-                    <div className="absolute top-3 right-3 text-xs font-mono text-green-400">
-                      <div>256 x 256</div>
-                    </div>
-                    <div className="absolute bottom-3 left-3 text-xs font-mono text-green-400">
-                      <div>MRI Brain</div>
-                      <div>T1 Weighted</div>
-                    </div>
-
-                    {/* Measurement line demo */}
-                    <svg className="absolute inset-0 pointer-events-none">
-                      <line x1="120" y1="200" x2="280" y2="200" stroke="#22d3ee" strokeWidth="2" />
-                      <circle cx="120" cy="200" r="4" fill="#22d3ee" />
-                      <circle cx="280" cy="200" r="4" fill="#22d3ee" />
-                      <text x="200" y="190" textAnchor="middle" fill="#22d3ee" fontSize="12" fontFamily="monospace">
-                        8.4 cm
-                      </text>
-                    </svg>
-                  </div>
-
-                  {/* Slice thumbnails */}
-                  <div className="mt-4 flex justify-center gap-2">
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                      <div
-                        key={i}
-                        className={`w-12 h-12 rounded bg-slate-800 border-2 ${
-                          i === 4 ? "border-blue-500" : "border-transparent"
-                        } overflow-hidden cursor-pointer hover:border-blue-400 transition-colors`}
-                      >
-                        <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Right Panel - Image Info */}
-                <div className="w-64 bg-slate-900/50 border-l border-slate-700 p-4 hidden lg:block">
-                  <h4 className="font-semibold text-sm text-slate-300 mb-4">Study Information</h4>
-                  <div className="space-y-3 text-sm">
-                    {[
-                      ["Patient", "John D."],
-                      ["Study Date", "Jan 15, 2024"],
-                      ["Modality", "MRI"],
-                      ["Body Part", "Brain"],
-                      ["Series", "T1 Weighted"],
-                      ["Images", "24 slices"],
-                      ["Facility", "City Medical"],
-                    ].map(([label, value]) => (
-                      <div key={label} className="flex justify-between">
-                        <span className="text-slate-500">{label}</span>
-                        <span className="text-slate-300">{value}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-6 pt-6 border-t border-slate-700">
-                    <h4 className="font-semibold text-sm text-slate-300 mb-3">Quick Actions</h4>
-                    <div className="space-y-2">
-                      <Button size="sm" className="w-full justify-start gap-2" variant="secondary">
-                        <Eye className="h-4 w-4" />
-                        Download Study
-                      </Button>
-                      <Button size="sm" className="w-full justify-start gap-2" variant="secondary">
-                        <Share2 className="h-4 w-4" />
-                        Share with Colleague
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          {/* Supported Formats */}
+          <div className="mt-16 text-center">
+            <p className="text-slate-400 mb-4">Supports all standard medical imaging formats</p>
+            <div className="flex flex-wrap justify-center gap-3">
+              {["DICOM", "MRI", "CT Scan", "X-Ray", "Ultrasound", "PET", "Mammography"].map((format) => (
+                <span
+                  key={format}
+                  className="px-4 py-2 rounded-full bg-slate-800 border border-slate-700 text-sm text-slate-300"
+                >
+                  {format}
+                </span>
+              ))}
             </div>
           </div>
 
-          {/* Viewer Features */}
-          <div className="mt-16 grid md:grid-cols-4 gap-6 max-w-4xl mx-auto">
-            {[
-              { icon: ZoomIn, title: "Zoom & Pan", desc: "Navigate through high-resolution images" },
-              { icon: Ruler, title: "Measure", desc: "Precise measurements in mm or cm" },
-              { icon: Contrast, title: "Window/Level", desc: "Adjust brightness and contrast" },
-              { icon: Layers, title: "Multi-planar", desc: "View axial, sagittal, coronal" },
-            ].map((feature, i) => (
-              <div key={i} className="text-center">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10 border border-blue-500/20 mb-3">
-                  <feature.icon className="h-6 w-6 text-blue-400" />
-                </div>
-                <h4 className="font-semibold text-white mb-1">{feature.title}</h4>
-                <p className="text-sm text-slate-400">{feature.desc}</p>
-              </div>
-            ))}
+          {/* CTA for Providers */}
+          <div className="mt-16 text-center">
+            <Link href="/signup/provider">
+              <Button size="lg" className="h-14 px-8 text-base font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-500/25 gap-2">
+                Create Provider Account
+                <ArrowRight className="h-5 w-5" />
+              </Button>
+            </Link>
+            <p className="mt-4 text-sm text-slate-400">Free to use. View unlimited studies.</p>
           </div>
         </div>
       </section>
