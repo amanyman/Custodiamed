@@ -130,34 +130,37 @@ export default async function ProviderInvitePage({
           .update({ status: "accepted" })
           .eq("id", invitation.id);
 
-        // Get all files for this study and create file_shares
+        // Get all files for this study
         const { data: studyFiles } = await supabase
           .from("medical_files")
           .select("id")
           .eq("study_id", invitation.study_id);
 
         if (studyFiles && studyFiles.length > 0) {
-          // Insert shares one by one, ignoring duplicates
-          for (const file of studyFiles) {
-            // Check if share already exists
-            const { data: existingShare } = await supabase
-              .from("file_shares")
-              .select("id")
-              .eq("file_id", file.id)
-              .eq("provider_id", provider.id)
-              .single();
+          // Get existing shares in one query
+          const { data: existingShares } = await supabase
+            .from("file_shares")
+            .select("file_id")
+            .eq("provider_id", provider.id)
+            .in("file_id", studyFiles.map(f => f.id));
 
-            if (!existingShare) {
-              await supabase.from("file_shares").insert({
-                file_id: file.id,
-                patient_id: patient?.id,
-                provider_id: provider.id,
-              });
-            }
+          const existingFileIds = new Set(existingShares?.map(s => s.file_id) || []);
+
+          // Filter to only new files and bulk insert
+          const newShares = studyFiles
+            .filter(file => !existingFileIds.has(file.id))
+            .map(file => ({
+              file_id: file.id,
+              patient_id: patient?.id,
+              provider_id: provider.id,
+            }));
+
+          if (newShares.length > 0) {
+            await supabase.from("file_shares").insert(newShares);
           }
         }
 
-        // Redirect to the studies list (not viewer, in case study_id doesn't match)
+        // Redirect to the studies list
         redirect(`/provider/studies`);
       }
 

@@ -246,7 +246,6 @@ export function FileUploader({ patientId }: { patientId: string }) {
                 file_id: file.id,
                 patient_id: patientId,
                 provider_id: rel.provider_id,
-                status: "active",
               });
             }
           }
