@@ -5,22 +5,26 @@ import { Button } from "@/components/ui/button";
 import {
   Upload,
   Share2,
-  FileSearch,
   Lock,
-  Users,
   ArrowRight,
   CheckCircle2,
   Sparkles,
   Eye,
-  Clock,
-  Monitor,
-  Stethoscope,
-  MessageCircle,
-  ArrowDown,
   Shield,
+  Link as LinkIcon,
+  Mail,
+  ZoomIn,
+  Ruler,
+  Layers,
+  Contrast,
+  RotateCcw,
+  Maximize,
+  Grid3X3,
+  MousePointer2,
+  Move,
 } from "lucide-react";
 
-// Logo component with Mediatio-style branding
+// Logo component
 function Logo({ className = "" }: { className?: string }) {
   return (
     <span className={`font-bold ${className}`}>
@@ -55,10 +59,10 @@ export default function LandingPage() {
                 How It Works
               </Link>
               <Link
-                href="#features"
+                href="#viewer"
                 className="text-sm text-muted-foreground link-hover transition-colors hover:text-foreground"
               >
-                Features
+                Image Viewer
               </Link>
               <Link
                 href="#security"
@@ -88,20 +92,20 @@ export default function LandingPage() {
         <div className="relative mx-auto max-w-7xl px-6">
           <div className="mx-auto max-w-4xl text-center">
             <h1 className="animate-fade-in-up text-5xl font-bold tracking-tight md:text-6xl lg:text-7xl leading-[1.1]">
-              Your Medical Imaging,{" "}
-              <span className="gradient-text">Securely Shared</span>
+              Share Medical Imaging{" "}
+              <span className="gradient-text">In Seconds</span>
             </h1>
 
             <p className="animate-fade-in-up-delay-1 mt-8 text-lg text-muted-foreground md:text-xl max-w-2xl mx-auto leading-relaxed">
-              No more carrying CDs to appointments. Share your medical imaging files
-              with your healthcare providers in seconds. It&apos;s that simple.
+              Upload your imaging CD, get a secure link, send it to your doctor.
+              It&apos;s that simple. No accounts needed for your provider.
             </p>
 
             <div className="animate-fade-in-up-delay-2 mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link href="/signup">
                 <Button size="lg" className="btn-glow gap-2 h-14 px-8 text-base font-semibold shadow-xl shadow-primary/30">
-                  Start Sharing Securely
-                  <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                  Start Sharing Free
+                  <ArrowRight className="h-5 w-5" />
                 </Button>
               </Link>
               <Link href="/signup/provider">
@@ -119,11 +123,11 @@ export default function LandingPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Shield className="h-4 w-4 text-primary" />
-                <span>HIPAA Compliant</span>
+                <span>Secure & Private</span>
               </div>
               <div className="flex items-center gap-2">
                 <Eye className="h-4 w-4 text-primary" />
-                <span>Full Audit Trail</span>
+                <span>Links Expire in 7 Days</span>
               </div>
             </div>
           </div>
@@ -136,8 +140,8 @@ export default function LandingPage() {
                   <CheckCircle2 className="h-5 w-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="font-medium text-sm">File Shared</p>
-                  <p className="text-xs text-muted-foreground">Just now</p>
+                  <p className="font-medium text-sm">Link Copied!</p>
+                  <p className="text-xs text-muted-foreground">Ready to share</p>
                 </div>
               </div>
             </div>
@@ -150,8 +154,8 @@ export default function LandingPage() {
                   <Upload className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="font-medium text-sm">Upload Complete</p>
-                  <p className="text-xs text-muted-foreground">MRI_Scan.dcm</p>
+                  <p className="font-medium text-sm">763 files uploaded</p>
+                  <p className="text-xs text-muted-foreground">Brain MRI Study</p>
                 </div>
               </div>
             </div>
@@ -159,303 +163,315 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* How It Works - Visual Story */}
+      {/* How It Works - Simplified 3 Steps */}
       <section id="how-it-works" className="relative py-24 md:py-32 overflow-hidden">
         <div className="mx-auto max-w-7xl px-6">
           <div className="mx-auto max-w-2xl text-center mb-20">
             <h2 className="text-4xl font-bold md:text-5xl">
-              How It Works
+              3 Simple Steps
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              Share your medical records in three simple steps
+              No complicated setup. No waiting. Just share.
             </p>
           </div>
 
-          {/* Visual Timeline */}
-          <div className="relative max-w-5xl mx-auto">
-            {/* Connection Line */}
-            <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-primary/50 via-primary to-primary/50 hidden lg:block" />
-
+          {/* Steps Grid */}
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {/* Step 1 */}
-            <div className="relative grid lg:grid-cols-2 gap-8 lg:gap-16 mb-16 lg:mb-24">
-              <div className="lg:text-right order-2 lg:order-1 flex flex-col justify-center">
-                <div className="inline-flex items-center gap-2 text-sm font-semibold text-primary mb-3 lg:justify-end">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm text-white shadow-lg shadow-primary/30">
+            <div className="relative">
+              <div className="text-center">
+                <div className="relative inline-block mb-6">
+                  <div className="absolute -inset-4 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-full blur-xl" />
+                  <div className="relative h-20 w-20 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                    <Upload className="h-10 w-10 text-white" />
+                  </div>
+                  <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-white shadow-lg flex items-center justify-center font-bold text-blue-600">
                     1
-                  </span>
-                  <span className="text-lg">Upload</span>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold mb-3">Drag & Drop Your Files</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  Got a CD from your doctor? Simply insert it, find your DICOM files,
-                  and drag them into CustodiaMed. We accept images too.
+                <h3 className="text-xl font-bold mb-3">Upload Your Files</h3>
+                <p className="text-muted-foreground">
+                  Insert your imaging CD and drag the folder into CustodiaMed. We handle MRIs, CT scans, X-rays, and more.
                 </p>
               </div>
-              <div className="order-1 lg:order-2 flex justify-center lg:justify-start">
-                <div className="relative">
-                  <div className="absolute -inset-4 bg-gradient-to-br from-primary/10 to-purple-500/10 rounded-3xl blur-xl" />
-                  <div className="relative interactive-card rounded-2xl bg-card border p-8 shadow-soft-lg">
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <Monitor className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium">Your Computer</p>
-                        <p className="text-sm text-muted-foreground">Patient View</p>
-                      </div>
+              {/* Arrow to next */}
+              <div className="hidden md:block absolute top-10 -right-4 w-8 h-8">
+                <ArrowRight className="w-8 h-8 text-muted-foreground/30" />
+              </div>
+            </div>
+
+            {/* Step 2 */}
+            <div className="relative">
+              <div className="text-center">
+                <div className="relative inline-block mb-6">
+                  <div className="absolute -inset-4 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full blur-xl" />
+                  <div className="relative h-20 w-20 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
+                    <LinkIcon className="h-10 w-10 text-white" />
+                  </div>
+                  <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-white shadow-lg flex items-center justify-center font-bold text-purple-600">
+                    2
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold mb-3">Get a Secure Link</h3>
+                <p className="text-muted-foreground">
+                  Click &quot;Share&quot; to instantly generate a secure link. Copy it with one click.
+                </p>
+              </div>
+              {/* Arrow to next */}
+              <div className="hidden md:block absolute top-10 -right-4 w-8 h-8">
+                <ArrowRight className="w-8 h-8 text-muted-foreground/30" />
+              </div>
+            </div>
+
+            {/* Step 3 */}
+            <div className="relative">
+              <div className="text-center">
+                <div className="relative inline-block mb-6">
+                  <div className="absolute -inset-4 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full blur-xl" />
+                  <div className="relative h-20 w-20 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/30">
+                    <Mail className="h-10 w-10 text-white" />
+                  </div>
+                  <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-white shadow-lg flex items-center justify-center font-bold text-green-600">
+                    3
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold mb-3">Send to Your Doctor</h3>
+                <p className="text-muted-foreground">
+                  Email or text the link to your healthcare provider. They click it and view your images instantly.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Visual Demo Card */}
+          <div className="mt-20 max-w-3xl mx-auto">
+            <div className="relative">
+              <div className="absolute -inset-4 bg-gradient-to-r from-primary/10 via-purple-500/10 to-pink-500/10 rounded-3xl blur-xl" />
+              <div className="relative rounded-2xl bg-card border shadow-soft-lg overflow-hidden">
+                <div className="bg-muted/50 px-6 py-4 border-b flex items-center gap-3">
+                  <div className="flex gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-400" />
+                    <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                    <div className="w-3 h-3 rounded-full bg-green-400" />
+                  </div>
+                  <div className="flex-1 flex justify-center">
+                    <div className="bg-background rounded-lg px-4 py-1.5 text-sm text-muted-foreground">
+                      custodiamed.com/share
                     </div>
-                    <div className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-6 text-center">
-                      <Upload className="h-8 w-8 text-primary mx-auto mb-2" />
-                      <p className="text-sm font-medium">Drop files here</p>
+                  </div>
+                </div>
+                <div className="p-8">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="h-14 w-14 rounded-xl bg-green-100 flex items-center justify-center">
+                      <CheckCircle2 className="h-7 w-7 text-green-600" />
                     </div>
-                    <div className="mt-4 flex items-center gap-2 text-sm text-green-600">
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span>MRI_Brain_Scan.dcm uploaded</span>
+                    <div>
+                      <h4 className="font-semibold text-lg">Your share link is ready!</h4>
+                      <p className="text-sm text-muted-foreground">Send this to your healthcare provider</p>
                     </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="flex-1 bg-muted rounded-lg px-4 py-3 font-mono text-sm truncate">
+                      https://custodiamed.com/view/abc123xyz...
+                    </div>
+                    <Button className="shrink-0">
+                      Copy Link
+                    </Button>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
 
-            {/* Arrow Down */}
-            <div className="flex justify-center mb-8 lg:hidden">
-              <ArrowDown className="h-6 w-6 text-primary animate-bounce" />
+      {/* Medical Image Viewer Section - For Doctors */}
+      <section id="viewer" className="relative py-24 md:py-32 bg-gradient-to-b from-slate-900 to-slate-800 text-white overflow-hidden">
+        {/* Background effects */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-3xl" />
+          <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5" />
+        </div>
+
+        <div className="relative mx-auto max-w-7xl px-6">
+          <div className="mx-auto max-w-2xl text-center mb-16">
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-300 mb-6">
+              <Sparkles className="h-4 w-4" />
+              <span>For Healthcare Providers</span>
             </div>
+            <h2 className="text-4xl font-bold md:text-5xl">
+              Medical-Grade Image Viewer
+            </h2>
+            <p className="mt-4 text-lg text-slate-300">
+              View DICOM images with professional tools - right in your browser. No software to install.
+            </p>
+          </div>
 
-            {/* Step 2 */}
-            <div className="relative grid lg:grid-cols-2 gap-8 lg:gap-16 mb-16 lg:mb-24">
-              <div className="flex justify-center lg:justify-end">
-                <div className="relative">
-                  <div className="absolute -inset-4 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-3xl blur-xl" />
-                  <div className="relative interactive-card rounded-2xl bg-card border p-8 shadow-soft-lg">
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <Share2 className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium">Select Provider</p>
-                        <p className="text-sm text-muted-foreground">One click sharing</p>
-                      </div>
+          {/* Viewer Mockup */}
+          <div className="relative max-w-5xl mx-auto">
+            <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-cyan-500/20 rounded-3xl blur-2xl" />
+            <div className="relative rounded-2xl bg-slate-950 border border-slate-700 shadow-2xl overflow-hidden">
+              {/* Viewer Header */}
+              <div className="bg-slate-900 px-4 py-3 border-b border-slate-700 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Logo className="text-lg" />
+                  <span className="text-slate-400 text-sm">DICOM Viewer</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-slate-400">
+                  <span>Patient: John D.</span>
+                  <span className="text-slate-600">|</span>
+                  <span>Brain MRI</span>
+                </div>
+              </div>
+
+              {/* Viewer Content */}
+              <div className="flex">
+                {/* Toolbar */}
+                <div className="w-16 bg-slate-900/50 border-r border-slate-700 py-4 flex flex-col items-center gap-2">
+                  {[
+                    { icon: MousePointer2, label: "Select" },
+                    { icon: Move, label: "Pan" },
+                    { icon: ZoomIn, label: "Zoom" },
+                    { icon: Ruler, label: "Measure" },
+                    { icon: Contrast, label: "Window" },
+                    { icon: RotateCcw, label: "Reset" },
+                    { icon: Layers, label: "Layers" },
+                    { icon: Grid3X3, label: "Grid" },
+                    { icon: Maximize, label: "Fullscreen" },
+                  ].map((tool, i) => (
+                    <button
+                      key={i}
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+                        i === 0 ? "bg-blue-500/20 text-blue-400" : "text-slate-500 hover:text-slate-300 hover:bg-slate-800"
+                      }`}
+                      title={tool.label}
+                    >
+                      <tool.icon className="h-5 w-5" />
+                    </button>
+                  ))}
+                </div>
+
+                {/* Main Viewer Area */}
+                <div className="flex-1 p-4">
+                  <div className="relative aspect-square max-h-[400px] mx-auto bg-black rounded-lg overflow-hidden">
+                    {/* Simulated MRI Image */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <svg viewBox="0 0 400 400" className="w-full h-full opacity-90">
+                        <defs>
+                          <radialGradient id="brain" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stopColor="#4a5568" />
+                            <stop offset="40%" stopColor="#2d3748" />
+                            <stop offset="70%" stopColor="#1a202c" />
+                            <stop offset="100%" stopColor="#000" />
+                          </radialGradient>
+                        </defs>
+                        {/* Skull outline */}
+                        <ellipse cx="200" cy="200" rx="150" ry="170" fill="url(#brain)" />
+                        {/* Brain structure simulation */}
+                        <ellipse cx="200" cy="180" rx="120" ry="130" fill="#374151" opacity="0.8" />
+                        <path d="M200 80 Q 280 150 280 200 Q 280 280 200 300 Q 120 280 120 200 Q 120 150 200 80" fill="#4b5563" opacity="0.6" />
+                        {/* Ventricles */}
+                        <ellipse cx="170" cy="180" rx="20" ry="35" fill="#1f2937" />
+                        <ellipse cx="230" cy="180" rx="20" ry="35" fill="#1f2937" />
+                        {/* Center line */}
+                        <line x1="200" y1="80" x2="200" y2="300" stroke="#6b7280" strokeWidth="1" opacity="0.3" />
+                      </svg>
                     </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                        <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium">
-                          DR
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">Dr. Rebecca Smith</p>
-                          <p className="text-xs text-muted-foreground">Neurologist</p>
-                        </div>
-                        <CheckCircle2 className="h-5 w-5 text-primary" />
+
+                    {/* Overlay info */}
+                    <div className="absolute top-3 left-3 text-xs font-mono text-green-400 space-y-1">
+                      <div>W: 400 L: 40</div>
+                      <div>Slice: 12/24</div>
+                    </div>
+                    <div className="absolute top-3 right-3 text-xs font-mono text-green-400">
+                      <div>256 x 256</div>
+                    </div>
+                    <div className="absolute bottom-3 left-3 text-xs font-mono text-green-400">
+                      <div>MRI Brain</div>
+                      <div>T1 Weighted</div>
+                    </div>
+
+                    {/* Measurement line demo */}
+                    <svg className="absolute inset-0 pointer-events-none">
+                      <line x1="120" y1="200" x2="280" y2="200" stroke="#22d3ee" strokeWidth="2" />
+                      <circle cx="120" cy="200" r="4" fill="#22d3ee" />
+                      <circle cx="280" cy="200" r="4" fill="#22d3ee" />
+                      <text x="200" y="190" textAnchor="middle" fill="#22d3ee" fontSize="12" fontFamily="monospace">
+                        8.4 cm
+                      </text>
+                    </svg>
+                  </div>
+
+                  {/* Slice thumbnails */}
+                  <div className="mt-4 flex justify-center gap-2">
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                      <div
+                        key={i}
+                        className={`w-12 h-12 rounded bg-slate-800 border-2 ${
+                          i === 4 ? "border-blue-500" : "border-transparent"
+                        } overflow-hidden cursor-pointer hover:border-blue-400 transition-colors`}
+                      >
+                        <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800" />
                       </div>
-                      <Button className="w-full" size="sm">
-                        Share Files
+                    ))}
+                  </div>
+                </div>
+
+                {/* Right Panel - Image Info */}
+                <div className="w-64 bg-slate-900/50 border-l border-slate-700 p-4 hidden lg:block">
+                  <h4 className="font-semibold text-sm text-slate-300 mb-4">Study Information</h4>
+                  <div className="space-y-3 text-sm">
+                    {[
+                      ["Patient", "John D."],
+                      ["Study Date", "Jan 15, 2024"],
+                      ["Modality", "MRI"],
+                      ["Body Part", "Brain"],
+                      ["Series", "T1 Weighted"],
+                      ["Images", "24 slices"],
+                      ["Facility", "City Medical"],
+                    ].map(([label, value]) => (
+                      <div key={label} className="flex justify-between">
+                        <span className="text-slate-500">{label}</span>
+                        <span className="text-slate-300">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-6 pt-6 border-t border-slate-700">
+                    <h4 className="font-semibold text-sm text-slate-300 mb-3">Quick Actions</h4>
+                    <div className="space-y-2">
+                      <Button size="sm" className="w-full justify-start gap-2" variant="secondary">
+                        <Eye className="h-4 w-4" />
+                        Download Study
+                      </Button>
+                      <Button size="sm" className="w-full justify-start gap-2" variant="secondary">
+                        <Share2 className="h-4 w-4" />
+                        Share with Colleague
                       </Button>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col justify-center">
-                <div className="inline-flex items-center gap-2 text-sm font-semibold text-primary mb-3">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm text-white shadow-lg shadow-primary/30">
-                    2
-                  </span>
-                  <span className="text-lg">Share</span>
-                </div>
-                <h3 className="text-2xl font-bold mb-3">Select Your Provider</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  Choose which doctor should receive your files. They&apos;ll get instant
-                  access - no emails, no USB drives, no waiting.
-                </p>
-              </div>
-            </div>
-
-            {/* Arrow Down */}
-            <div className="flex justify-center mb-8 lg:hidden">
-              <ArrowDown className="h-6 w-6 text-primary animate-bounce" />
-            </div>
-
-            {/* Step 3 */}
-            <div className="relative grid lg:grid-cols-2 gap-8 lg:gap-16">
-              <div className="lg:text-right order-2 lg:order-1 flex flex-col justify-center">
-                <div className="inline-flex items-center gap-2 text-sm font-semibold text-primary mb-3 lg:justify-end">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm text-white shadow-lg shadow-primary/30">
-                    3
-                  </span>
-                  <span className="text-lg">Done</span>
-                </div>
-                <h3 className="text-2xl font-bold mb-3">Doctor Reviews Instantly</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  Your provider sees the files immediately on their dashboard.
-                  No more &ldquo;we didn&apos;t receive it&rdquo; or &ldquo;the CD wouldn&apos;t read.&rdquo;
-                </p>
-              </div>
-              <div className="order-1 lg:order-2 flex justify-center lg:justify-start">
-                <div className="relative">
-                  <div className="absolute -inset-4 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-3xl blur-xl" />
-                  <div className="relative interactive-card rounded-2xl bg-card border p-8 shadow-soft-lg">
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className="h-12 w-12 rounded-xl bg-green-100 flex items-center justify-center">
-                        <Stethoscope className="h-6 w-6 text-green-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium">Provider Dashboard</p>
-                        <p className="text-sm text-muted-foreground">Doctor&apos;s View</p>
-                      </div>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-200">
-                        <FileSearch className="h-5 w-5 text-green-600" />
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">New file received!</p>
-                          <p className="text-xs text-muted-foreground">From: John Smith</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-                        <MessageCircle className="h-4 w-4 text-primary" />
-                        <p className="text-sm italic text-muted-foreground">
-                          &ldquo;Thank you for sharing your records!&rdquo;
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Real World Example */}
-      <section className="relative py-24 md:py-32 bg-gradient-to-b from-muted/30 to-background">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="mx-auto max-w-4xl">
-            <div className="text-center mb-16">
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-medium text-primary mb-6">
-                <Sparkles className="h-4 w-4" />
-                <span>Real World Example</span>
-              </div>
-              <h2 className="text-3xl font-bold md:text-4xl">
-                See How Easy It Is
-              </h2>
-            </div>
-
-            {/* Story Cards */}
-            <div className="relative">
-              <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary via-purple-500 to-green-500 rounded-full" />
-
-              {/* Story Point 1 */}
-              <div className="relative pl-20 pb-12">
-                <div className="absolute left-6 w-5 h-5 rounded-full bg-primary border-4 border-background shadow-lg" />
-                <div className="card-hover rounded-2xl bg-card border p-6 shadow-soft">
-                  <p className="text-sm text-muted-foreground mb-2">The Problem</p>
-                  <p className="text-lg">
-                    Sarah just got an MRI at the imaging center. They hand her a CD and say,
-                    &ldquo;Give this to your neurologist.&rdquo;
-                  </p>
+          {/* Viewer Features */}
+          <div className="mt-16 grid md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+            {[
+              { icon: ZoomIn, title: "Zoom & Pan", desc: "Navigate through high-resolution images" },
+              { icon: Ruler, title: "Measure", desc: "Precise measurements in mm or cm" },
+              { icon: Contrast, title: "Window/Level", desc: "Adjust brightness and contrast" },
+              { icon: Layers, title: "Multi-planar", desc: "View axial, sagittal, coronal" },
+            ].map((feature, i) => (
+              <div key={i} className="text-center">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10 border border-blue-500/20 mb-3">
+                  <feature.icon className="h-6 w-6 text-blue-400" />
                 </div>
+                <h4 className="font-semibold text-white mb-1">{feature.title}</h4>
+                <p className="text-sm text-slate-400">{feature.desc}</p>
               </div>
-
-              {/* Story Point 2 */}
-              <div className="relative pl-20 pb-12">
-                <div className="absolute left-6 w-5 h-5 rounded-full bg-purple-500 border-4 border-background shadow-lg" />
-                <div className="card-hover rounded-2xl bg-card border p-6 shadow-soft">
-                  <p className="text-sm text-muted-foreground mb-2">The Old Way</p>
-                  <p className="text-lg">
-                    She doesn&apos;t have a CD drive. She tries to find one, eventually mails
-                    the CD, it gets lost, she has to request another copy... 2 weeks later.
-                  </p>
-                </div>
-              </div>
-
-              {/* Story Point 3 */}
-              <div className="relative pl-20 pb-12">
-                <div className="absolute left-6 w-5 h-5 rounded-full bg-primary border-4 border-background shadow-lg" />
-                <div className="card-hover rounded-2xl bg-card border p-6 shadow-soft bg-primary/5">
-                  <p className="text-sm text-primary font-medium mb-2">With CustodiaMed</p>
-                  <p className="text-lg">
-                    Sarah borrows a USB CD drive, drags the files into CustodiaMed,
-                    clicks &ldquo;Share with Dr. Johnson&rdquo; — done in 2 minutes.
-                  </p>
-                </div>
-              </div>
-
-              {/* Story Point 4 */}
-              <div className="relative pl-20">
-                <div className="absolute left-6 w-5 h-5 rounded-full bg-green-500 border-4 border-background shadow-lg" />
-                <div className="card-hover rounded-2xl bg-card border p-6 shadow-soft bg-green-50">
-                  <p className="text-sm text-green-600 font-medium mb-2">The Result</p>
-                  <p className="text-lg">
-                    Dr. Johnson reviews the MRI that same afternoon and calls Sarah
-                    to discuss the results. No delays, no lost CDs, no frustration.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section id="features" className="relative py-24 md:py-32">
-        <div className="absolute inset-0 gradient-mesh opacity-50" />
-        <div className="relative mx-auto max-w-7xl px-6">
-          <div className="mx-auto max-w-2xl text-center mb-16">
-            <h2 className="text-4xl font-bold md:text-5xl">
-              Built for Everyone
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Whether you&apos;re a patient or healthcare provider, CustodiaMed
-              makes medical imaging simple
-            </p>
-          </div>
-
-          <div className="grid gap-8 lg:grid-cols-2">
-            {/* For Patients */}
-            <div className="interactive-card rounded-3xl border bg-card p-10 shadow-soft">
-              <div className="mb-8 inline-flex h-16 w-16 items-center justify-center rounded-2xl feature-icon">
-                <Users className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-2xl font-bold mb-6">For Patients</h3>
-              <ul className="space-y-5">
-                {[
-                  "Upload imaging files from CDs in seconds",
-                  "Control exactly who can see your files",
-                  "Revoke access anytime with one click",
-                  "Track who has viewed your imaging",
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-4">
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                    </div>
-                    <span className="text-muted-foreground">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* For Providers */}
-            <div className="interactive-card rounded-3xl border bg-card p-10 shadow-soft">
-              <div className="mb-8 inline-flex h-16 w-16 items-center justify-center rounded-2xl feature-icon">
-                <Stethoscope className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-2xl font-bold mb-6">For Healthcare Providers</h3>
-              <ul className="space-y-5">
-                {[
-                  "Receive imaging files directly from patients",
-                  "Invite patients to share their records",
-                  "Add notes and mark files as reviewed",
-                  "HIPAA-compliant audit trail included",
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-4">
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                    </div>
-                    <span className="text-muted-foreground">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -476,23 +492,23 @@ export default function LandingPage() {
             {[
               {
                 icon: Shield,
-                title: "HIPAA Compliant",
-                description: "Built with HIPAA requirements in mind",
+                title: "Secure Sharing",
+                description: "Links expire automatically after 7 days",
               },
               {
                 icon: Lock,
-                title: "End-to-End Encryption",
-                description: "Files encrypted in transit and at rest",
+                title: "Encrypted",
+                description: "256-bit encryption in transit and at rest",
               },
               {
-                icon: FileSearch,
-                title: "Audit Logging",
-                description: "Complete record of all access",
+                icon: Eye,
+                title: "Private",
+                description: "Only people with your link can view",
               },
               {
-                icon: Clock,
-                title: "Access Control",
-                description: "You decide who sees your data",
+                icon: CheckCircle2,
+                title: "You Control",
+                description: "Delete your files anytime",
               },
             ].map((item, i) => (
               <div
@@ -524,11 +540,10 @@ export default function LandingPage() {
 
             <div className="relative mx-auto max-w-2xl text-center">
               <h2 className="text-4xl font-bold text-white md:text-5xl">
-                Ready to Get Started?
+                Ready to Share?
               </h2>
               <p className="mt-6 text-lg text-white/80">
-                Join thousands of patients and providers who trust CustodiaMed for
-                secure medical imaging sharing.
+                Create your free account and share your first study in under 5 minutes.
               </p>
               <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
                 <Link href="/signup">
