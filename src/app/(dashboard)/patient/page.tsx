@@ -18,23 +18,34 @@ export default async function PatientDashboard() {
     .eq("user_id", user!.id)
     .single();
 
-  // Get stats
-  const { count: filesCount } = await supabase
-    .from("medical_files")
-    .select("*", { count: "exact", head: true })
-    .eq("patient_id", patient?.id || "");
+  // Run all queries in parallel for faster loading
+  const [filesResult, providersResult, sharesResult, recentFilesResult] = await Promise.all([
+    supabase
+      .from("medical_files")
+      .select("*", { count: "exact", head: true })
+      .eq("patient_id", patient?.id || ""),
+    supabase
+      .from("patient_provider_relationships")
+      .select("*", { count: "exact", head: true })
+      .eq("patient_id", patient?.id || "")
+      .eq("status", "active"),
+    supabase
+      .from("file_shares")
+      .select("*", { count: "exact", head: true })
+      .eq("patient_id", patient?.id || "")
+      .eq("status", "active"),
+    supabase
+      .from("imaging_studies")
+      .select("*")
+      .eq("patient_id", patient?.id || "")
+      .order("created_at", { ascending: false })
+      .limit(5),
+  ]);
 
-  const { count: providersCount } = await supabase
-    .from("patient_provider_relationships")
-    .select("*", { count: "exact", head: true })
-    .eq("patient_id", patient?.id || "")
-    .eq("status", "active");
-
-  const { count: sharesCount } = await supabase
-    .from("file_shares")
-    .select("*", { count: "exact", head: true })
-    .eq("patient_id", patient?.id || "")
-    .eq("status", "active");
+  const filesCount = filesResult.count;
+  const providersCount = providersResult.count;
+  const sharesCount = sharesResult.count;
+  const recentStudies = recentFilesResult.data;
 
   const stats = [
     {
@@ -131,35 +142,24 @@ export default async function PatientDashboard() {
         </div>
       </div>
 
-      {/* Recent Files */}
-      <RecentFiles patientId={patient?.id} />
+      {/* Recent Studies */}
+      <RecentStudies studies={recentStudies} />
     </div>
   );
 }
 
-async function RecentFiles({ patientId }: { patientId: string | undefined }) {
-  if (!patientId) return null;
-
-  const supabase = await createClient();
-
-  const { data: files } = await supabase
-    .from("medical_files")
-    .select("*")
-    .eq("patient_id", patientId)
-    .order("created_at", { ascending: false })
-    .limit(5);
-
-  if (!files || files.length === 0) {
+function RecentStudies({ studies }: { studies: any[] | null }) {
+  if (!studies || studies.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Recent Files</CardTitle>
+          <CardTitle>Recent Studies</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            No files uploaded yet.{" "}
+            No studies uploaded yet.{" "}
             <Link href="/patient/files/upload" className="text-primary hover:underline">
-              Upload your first file
+              Upload your first study
             </Link>
           </p>
         </CardContent>
@@ -170,7 +170,7 @@ async function RecentFiles({ patientId }: { patientId: string | undefined }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Recent Files</CardTitle>
+        <CardTitle>Recent Studies</CardTitle>
         <Link href="/patient/files">
           <Button variant="ghost" size="sm">
             View All
@@ -179,22 +179,22 @@ async function RecentFiles({ patientId }: { patientId: string | undefined }) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {files.map((file) => (
+          {studies.map((study) => (
             <div
-              key={file.id}
+              key={study.id}
               className="flex items-center justify-between rounded-lg border border-border p-4"
             >
               <div className="flex items-center gap-3">
                 <FolderOpen className="h-8 w-8 text-primary" />
                 <div>
-                  <p className="font-medium">{file.original_filename}</p>
+                  <p className="font-medium">{study.study_type || study.modality}</p>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(file.created_at).toLocaleDateString()}
-                    {file.modality && ` • ${file.modality}`}
+                    {new Date(study.study_date).toLocaleDateString()}
+                    {study.facility_name && ` • ${study.facility_name}`}
                   </p>
                 </div>
               </div>
-              <Link href={`/patient/files/${file.id}`}>
+              <Link href={`/patient/files/study/${study.id}`}>
                 <Button variant="ghost" size="sm">
                   View
                 </Button>

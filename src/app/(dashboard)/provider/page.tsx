@@ -18,31 +18,52 @@ export default async function ProviderDashboard() {
     .eq("user_id", user!.id)
     .single();
 
-  // Get stats
-  const { count: patientsCount } = await supabase
-    .from("patient_provider_relationships")
-    .select("*", { count: "exact", head: true })
-    .eq("provider_id", provider?.id || "")
-    .eq("status", "active");
+  // Run all stats queries in parallel for faster loading
+  const [patientsResult, receivedFilesResult, pendingReviewResult, pendingInvitationsResult, recentSharesResult] = await Promise.all([
+    supabase
+      .from("patient_provider_relationships")
+      .select("*", { count: "exact", head: true })
+      .eq("provider_id", provider?.id || "")
+      .eq("status", "active"),
+    supabase
+      .from("file_shares")
+      .select("*", { count: "exact", head: true })
+      .eq("provider_id", provider?.id || "")
+      .eq("status", "active"),
+    supabase
+      .from("file_shares")
+      .select("*", { count: "exact", head: true })
+      .eq("provider_id", provider?.id || "")
+      .eq("status", "active")
+      .is("reviewed_at", null),
+    supabase
+      .from("invitations")
+      .select("*", { count: "exact", head: true })
+      .eq("provider_id", provider?.id || "")
+      .eq("status", "pending"),
+    supabase
+      .from("file_shares")
+      .select(`
+        id,
+        status,
+        created_at,
+        reviewed_at,
+        medical_files(original_filename, file_type),
+        patients(
+          profiles(full_name)
+        )
+      `)
+      .eq("provider_id", provider?.id || "")
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(5),
+  ]);
 
-  const { count: receivedFilesCount } = await supabase
-    .from("file_shares")
-    .select("*", { count: "exact", head: true })
-    .eq("provider_id", provider?.id || "")
-    .eq("status", "active");
-
-  const { count: pendingReviewCount } = await supabase
-    .from("file_shares")
-    .select("*", { count: "exact", head: true })
-    .eq("provider_id", provider?.id || "")
-    .eq("status", "active")
-    .is("reviewed_at", null);
-
-  const { count: pendingInvitationsCount } = await supabase
-    .from("invitations")
-    .select("*", { count: "exact", head: true })
-    .eq("provider_id", provider?.id || "")
-    .eq("status", "pending");
+  const patientsCount = patientsResult.count;
+  const receivedFilesCount = receivedFilesResult.count;
+  const pendingReviewCount = pendingReviewResult.count;
+  const pendingInvitationsCount = pendingInvitationsResult.count;
+  const recentShares = recentSharesResult.data;
 
   const stats = [
     {
@@ -144,33 +165,12 @@ export default async function ProviderDashboard() {
       </div>
 
       {/* Recent Activity */}
-      <RecentShares providerId={provider?.id} />
+      <RecentShares shares={recentShares} />
     </div>
   );
 }
 
-async function RecentShares({ providerId }: { providerId: string | undefined }) {
-  if (!providerId) return null;
-
-  const supabase = await createClient();
-
-  const { data: shares } = await supabase
-    .from("file_shares")
-    .select(`
-      id,
-      status,
-      created_at,
-      reviewed_at,
-      medical_files(original_filename, file_type),
-      patients(
-        profiles(full_name)
-      )
-    `)
-    .eq("provider_id", providerId)
-    .eq("status", "active")
-    .order("created_at", { ascending: false })
-    .limit(5);
-
+function RecentShares({ shares }: { shares: any[] | null }) {
   if (!shares || shares.length === 0) {
     return (
       <Card>

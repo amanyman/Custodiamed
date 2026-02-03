@@ -33,20 +33,23 @@ export default async function FilesPage() {
     redirect("/login");
   }
 
-  // Get imaging studies instead of individual files
-  const { data: studies } = await supabase
-    .from("imaging_studies")
-    .select("*")
-    .eq("patient_id", patient.id)
-    .order("study_date", { ascending: false });
+  // Run queries in parallel for faster loading
+  const [studiesResult, legacyFilesResult] = await Promise.all([
+    supabase
+      .from("imaging_studies")
+      .select("*")
+      .eq("patient_id", patient.id)
+      .order("study_date", { ascending: false }),
+    supabase
+      .from("medical_files")
+      .select("*")
+      .eq("patient_id", patient.id)
+      .is("study_id", null)
+      .order("created_at", { ascending: false }),
+  ]);
 
-  // Also get files without a study (legacy uploads)
-  const { data: legacyFiles } = await supabase
-    .from("medical_files")
-    .select("*")
-    .eq("patient_id", patient.id)
-    .is("study_id", null)
-    .order("created_at", { ascending: false });
+  const studies = studiesResult.data;
+  const legacyFiles = legacyFilesResult.data;
 
   const hasStudies = studies && studies.length > 0;
   const hasLegacyFiles = legacyFiles && legacyFiles.length > 0;
