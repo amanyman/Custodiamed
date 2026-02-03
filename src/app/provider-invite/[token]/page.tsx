@@ -70,7 +70,8 @@ export default async function ProviderInvitePage({
 
   const isExpired = new Date(invitation.expires_at) < new Date();
 
-  if (invitation.status !== "pending" || isExpired) {
+  // Only block if expired (not if already accepted - let them view again)
+  if (isExpired) {
     return (
       <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4">
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -80,33 +81,16 @@ export default async function ProviderInvitePage({
 
         <Card className="relative z-10 w-full max-w-md shadow-soft-lg border-0 bg-card/80 backdrop-blur-sm">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            {invitation.status === "accepted" ? (
-              <>
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 mb-4">
-                  <CheckCircle className="h-8 w-8 text-green-600" />
-                </div>
-                <h2 className="text-2xl font-bold">Already Accepted</h2>
-                <p className="mt-3 text-muted-foreground max-w-xs">
-                  You&apos;ve already accepted this invitation.
-                </p>
-                <Link href="/login" className="mt-8">
-                  <Button className="btn-glow shadow-lg shadow-primary/25">Sign In</Button>
-                </Link>
-              </>
-            ) : (
-              <>
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted mb-4">
-                  <Clock className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <h2 className="text-2xl font-bold">Invitation Expired</h2>
-                <p className="mt-3 text-muted-foreground max-w-xs">
-                  This invitation has expired. Please ask the patient to send a new one.
-                </p>
-                <Link href="/" className="mt-8">
-                  <Button className="btn-glow shadow-lg shadow-primary/25">Go to Home</Button>
-                </Link>
-              </>
-            )}
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted mb-4">
+              <Clock className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h2 className="text-2xl font-bold">Invitation Expired</h2>
+            <p className="mt-3 text-muted-foreground max-w-xs">
+              This invitation has expired. Please ask the patient to send a new one.
+            </p>
+            <Link href="/" className="mt-8">
+              <Button className="btn-glow shadow-lg shadow-primary/25">Go to Home</Button>
+            </Link>
           </CardContent>
         </Card>
       </div>
@@ -153,22 +137,32 @@ export default async function ProviderInvitePage({
           .eq("study_id", invitation.study_id);
 
         if (studyFiles && studyFiles.length > 0) {
-          const shareRecords = studyFiles.map(file => ({
-            file_id: file.id,
-            patient_id: patient?.id,
-            provider_id: provider.id,
-            status: "active" as const,
-          }));
+          // Insert shares one by one, ignoring duplicates
+          for (const file of studyFiles) {
+            // Check if share already exists
+            const { data: existingShare } = await supabase
+              .from("file_shares")
+              .select("id")
+              .eq("file_id", file.id)
+              .eq("provider_id", provider.id)
+              .single();
 
-          // Insert shares (ignore duplicates)
-          await supabase
-            .from("file_shares")
-            .upsert(shareRecords, { onConflict: "file_id,provider_id", ignoreDuplicates: true });
+            if (!existingShare) {
+              await supabase.from("file_shares").insert({
+                file_id: file.id,
+                patient_id: patient?.id,
+                provider_id: provider.id,
+              });
+            }
+          }
         }
+
+        // Redirect to the studies list (not viewer, in case study_id doesn't match)
+        redirect(`/provider/studies`);
       }
 
-      // Redirect to view the study
-      redirect(`/provider/studies/${invitation.study_id}/viewer`);
+      // If no provider record, still redirect to studies
+      redirect(`/provider/studies`);
     }
   }
 
