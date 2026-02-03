@@ -6,7 +6,11 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowLeft, Share2, User, Loader2, CheckCircle, Building2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Share2, User, Loader2, CheckCircle, Building2, Mail, Send } from "lucide-react";
 import { toast } from "sonner";
 import { use } from "react";
 
@@ -32,16 +36,21 @@ export default function ShareStudyPage({
   const [isLoading, setIsLoading] = useState(true);
   const [isSharing, setIsSharing] = useState(false);
   const [study, setStudy] = useState<any>(null);
+  const [patientId, setPatientId] = useState<string | null>(null);
+
+  // Invite new provider form
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
+  const [inviteMessage, setInviteMessage] = useState("");
+  const [isSendingInvite, setIsSendingInvite] = useState(false);
 
   useEffect(() => {
     async function loadData() {
       const supabase = createClient();
 
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get patient ID
       const { data: patient } = await supabase
         .from("patients")
         .select("id")
@@ -49,8 +58,8 @@ export default function ShareStudyPage({
         .single();
 
       if (!patient) return;
+      setPatientId(patient.id);
 
-      // Get study info
       const { data: studyData } = await supabase
         .from("imaging_studies")
         .select("*")
@@ -59,7 +68,6 @@ export default function ShareStudyPage({
 
       setStudy(studyData);
 
-      // Get connected providers
       const { data: relationships } = await supabase
         .from("patient_provider_relationships")
         .select(`
@@ -90,14 +98,13 @@ export default function ShareStudyPage({
     loadData();
   }, [studyId]);
 
-  const handleShare = async () => {
+  const handleShareWithExisting = async () => {
     if (!selectedProvider || !study) return;
 
     setIsSharing(true);
     const supabase = createClient();
 
     try {
-      // Get current user and patient
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
@@ -109,7 +116,6 @@ export default function ShareStudyPage({
 
       if (!patient) throw new Error("Patient not found");
 
-      // Get all files in the study
       const { data: files } = await supabase
         .from("medical_files")
         .select("id")
@@ -119,7 +125,6 @@ export default function ShareStudyPage({
         throw new Error("No files found in this study");
       }
 
-      // Create file shares for each file
       const shares = files.map((file) => ({
         file_id: file.id,
         patient_id: patient.id,
@@ -139,6 +144,69 @@ export default function ShareStudyPage({
       toast.error("Failed to share study. Please try again.");
     } finally {
       setIsSharing(false);
+    }
+  };
+
+  const handleInviteProvider = async () => {
+    if (!inviteEmail || !patientId) return;
+
+    setIsSendingInvite(true);
+    const supabase = createClient();
+
+    try {
+      // Create invitation record
+      const { data: invitation, error } = await supabase
+        .from("provider_invitations")
+        .insert({
+          patient_id: patientId,
+          study_id: studyId,
+          provider_email: inviteEmail,
+          provider_name: inviteName || null,
+          message: inviteMessage || null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Get patient profile for the email
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user?.id)
+        .single();
+
+      // Send invitation email via API
+      const response = await fetch("/api/invitations/send-provider-invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invitationId: invitation.id,
+          token: invitation.token,
+          providerEmail: inviteEmail,
+          providerName: inviteName,
+          patientName: profile?.full_name || "A patient",
+          studyType: study?.study_type || study?.modality,
+          studyDate: study?.study_date,
+          message: inviteMessage,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send email");
+      }
+
+      toast.success("Invitation sent successfully!");
+      setInviteEmail("");
+      setInviteName("");
+      setInviteMessage("");
+      router.push("/patient/files");
+    } catch (error) {
+      console.error("Invite error:", error);
+      toast.error("Failed to send invitation. Please try again.");
+    } finally {
+      setIsSendingInvite(false);
     }
   };
 
@@ -169,79 +237,166 @@ export default function ShareStudyPage({
         </div>
       </div>
 
-      {providers.length === 0 ? (
-        <Card className="border-0 shadow-soft">
-          <CardContent className="py-12 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted mx-auto mb-4">
-              <User className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="font-semibold text-lg">No connected providers</h3>
-            <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
-              You need to be connected with a healthcare provider before you can share files.
-              Ask your provider to send you an invitation.
-            </p>
-            <Link href="/patient/providers" className="mt-4 inline-block">
-              <Button variant="outline">View My Providers</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
+      <Tabs defaultValue={providers.length > 0 ? "existing" : "invite"} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="existing" className="gap-2">
+            <Building2 className="h-4 w-4" />
+            My Providers
+          </TabsTrigger>
+          <TabsTrigger value="invite" className="gap-2">
+            <Mail className="h-4 w-4" />
+            Invite New
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Share with existing provider */}
+        <TabsContent value="existing">
+          {providers.length === 0 ? (
+            <Card className="border-0 shadow-soft">
+              <CardContent className="py-12 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted mx-auto mb-4">
+                  <User className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="font-semibold text-lg">No connected providers</h3>
+                <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
+                  You don&apos;t have any connected providers yet. Use the &quot;Invite New&quot; tab to invite a provider by email.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <Card className="border-0 shadow-soft">
+                <CardHeader>
+                  <CardTitle>Select Provider</CardTitle>
+                  <CardDescription>
+                    Choose which healthcare provider should receive this study
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {providers.map((provider) => (
+                    <div
+                      key={provider.id}
+                      onClick={() => setSelectedProvider(provider.id)}
+                      className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                        selectedProvider === provider.id
+                          ? "border-primary bg-primary/5"
+                          : "border-transparent bg-muted/50 hover:bg-muted"
+                      }`}
+                    >
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                        <Building2 className="h-6 w-6 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium">{provider.profiles?.full_name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {provider.practice_name} • {provider.specialty}
+                        </p>
+                      </div>
+                      {selectedProvider === provider.id && (
+                        <CheckCircle className="h-6 w-6 text-primary" />
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <Button
+                onClick={handleShareWithExisting}
+                disabled={!selectedProvider || isSharing}
+                size="lg"
+                className="w-full h-14 text-lg font-medium btn-glow shadow-lg shadow-primary/25"
+              >
+                {isSharing ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Sharing...
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="mr-2 h-5 w-5" />
+                    Share Study
+                  </>
+                )}
+              </Button>
+            </>
+          )}
+        </TabsContent>
+
+        {/* Invite new provider */}
+        <TabsContent value="invite">
           <Card className="border-0 shadow-soft">
             <CardHeader>
-              <CardTitle>Select Provider</CardTitle>
+              <CardTitle>Invite a Healthcare Provider</CardTitle>
               <CardDescription>
-                Choose which healthcare provider should receive this study
+                Send an email invitation to your doctor or specialist to view this study
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {providers.map((provider) => (
-                <div
-                  key={provider.id}
-                  onClick={() => setSelectedProvider(provider.id)}
-                  className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                    selectedProvider === provider.id
-                      ? "border-primary bg-primary/5"
-                      : "border-transparent bg-muted/50 hover:bg-muted"
-                  }`}
-                >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                    <Building2 className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">{provider.profiles?.full_name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {provider.practice_name} • {provider.specialty}
-                    </p>
-                  </div>
-                  {selectedProvider === provider.id && (
-                    <CheckCircle className="h-6 w-6 text-primary" />
-                  )}
-                </div>
-              ))}
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="providerEmail">Provider&apos;s Email *</Label>
+                <Input
+                  id="providerEmail"
+                  type="email"
+                  placeholder="doctor@hospital.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  className="h-12"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="providerName">Provider&apos;s Name (optional)</Label>
+                <Input
+                  id="providerName"
+                  placeholder="Dr. Smith"
+                  value={inviteName}
+                  onChange={(e) => setInviteName(e.target.value)}
+                  className="h-12"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="message">Personal Message (optional)</Label>
+                <Textarea
+                  id="message"
+                  placeholder="Hi Dr. Smith, I'm sharing my recent MRI scan for your review..."
+                  value={inviteMessage}
+                  onChange={(e) => setInviteMessage(e.target.value)}
+                  className="min-h-[100px] resize-none"
+                />
+              </div>
+
+              <div className="bg-muted/50 rounded-xl p-4 text-sm text-muted-foreground">
+                <p className="font-medium text-foreground mb-1">What happens next?</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Your provider will receive a professional email invitation</li>
+                  <li>They&apos;ll create a free CustodiaMed account (if they don&apos;t have one)</li>
+                  <li>Once registered, they can immediately view your shared study</li>
+                </ul>
+              </div>
             </CardContent>
           </Card>
 
           <Button
-            onClick={handleShare}
-            disabled={!selectedProvider || isSharing}
+            onClick={handleInviteProvider}
+            disabled={!inviteEmail || isSendingInvite}
             size="lg"
             className="w-full h-14 text-lg font-medium btn-glow shadow-lg shadow-primary/25"
           >
-            {isSharing ? (
+            {isSendingInvite ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Sharing...
+                Sending Invitation...
               </>
             ) : (
               <>
-                <Share2 className="mr-2 h-5 w-5" />
-                Share Study
+                <Send className="mr-2 h-5 w-5" />
+                Send Invitation
               </>
             )}
           </Button>
-        </>
-      )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
