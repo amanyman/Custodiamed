@@ -132,8 +132,43 @@ export default async function ProviderInvitePage({
       .single();
 
     if (profile?.role === "provider") {
-      // Accept invitation and redirect to view study
-      redirect(`/provider/shared/${invitation.study_id}?invitation=${token}`);
+      // Get provider record
+      const { data: provider } = await supabase
+        .from("providers")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (provider) {
+        // Mark invitation as accepted
+        await supabase
+          .from("provider_invitations")
+          .update({ status: "accepted" })
+          .eq("id", invitation.id);
+
+        // Get all files for this study and create file_shares
+        const { data: studyFiles } = await supabase
+          .from("medical_files")
+          .select("id")
+          .eq("study_id", invitation.study_id);
+
+        if (studyFiles && studyFiles.length > 0) {
+          const shareRecords = studyFiles.map(file => ({
+            file_id: file.id,
+            patient_id: patient?.id,
+            provider_id: provider.id,
+            status: "active" as const,
+          }));
+
+          // Insert shares (ignore duplicates)
+          await supabase
+            .from("file_shares")
+            .upsert(shareRecords, { onConflict: "file_id,provider_id", ignoreDuplicates: true });
+        }
+      }
+
+      // Redirect to view the study
+      redirect(`/provider/studies/${invitation.study_id}/viewer`);
     }
   }
 
@@ -223,7 +258,7 @@ export default async function ProviderInvitePage({
                 Create Provider Account
               </Button>
             </Link>
-            <Link href={`/login?invitation=${token}&redirect=/provider/shared/${invitation.study_id}`} className="block">
+            <Link href={`/login?invitation=${token}&redirect=/provider-invite/${token}`} className="block">
               <Button variant="outline" className="w-full h-12 font-medium border-2">
                 I Already Have an Account
               </Button>
