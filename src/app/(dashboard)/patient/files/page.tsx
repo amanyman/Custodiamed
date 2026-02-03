@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { DeleteAllButton } from "@/components/files/delete-all-button";
 
 export default async function FilesPage() {
   const supabase = await createClient();
@@ -54,6 +55,9 @@ export default async function FilesPage() {
   const hasStudies = studies && studies.length > 0;
   const hasLegacyFiles = legacyFiles && legacyFiles.length > 0;
 
+  const studyCount = studies?.length || 0;
+  const legacyFileCount = legacyFiles?.length || 0;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -63,12 +67,19 @@ export default async function FilesPage() {
             Manage your medical imaging studies
           </p>
         </div>
-        <Link href="/patient/files/upload">
-          <Button className="gap-2 btn-glow shadow-lg shadow-primary/25">
-            <Upload className="h-4 w-4" />
-            Upload Files
-          </Button>
-        </Link>
+        <div className="flex items-center gap-3">
+          <DeleteAllButton
+            patientId={patient.id}
+            studyCount={studyCount}
+            fileCount={legacyFileCount}
+          />
+          <Link href="/patient/files/upload">
+            <Button className="gap-2 btn-glow shadow-lg shadow-primary/25">
+              <Upload className="h-4 w-4" />
+              Upload Files
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {!hasStudies && !hasLegacyFiles ? (

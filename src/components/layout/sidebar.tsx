@@ -24,7 +24,6 @@ import {
   Mail,
   FileText,
   ChevronRight,
-  Bell,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -86,11 +85,7 @@ export function Sidebar({ role, user }: SidebarProps) {
         </Link>
 
         {user && (
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="relative h-9 w-9">
-              <Bell className="h-4 w-4" />
-            </Button>
-
+          <div className="flex items-center">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
