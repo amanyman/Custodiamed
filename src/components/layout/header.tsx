@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { LogOut, Menu, Settings, User } from "lucide-react";
+import { LogOut, Menu, Settings, User, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -64,24 +64,41 @@ export function Header({ user, onMobileMenuToggle }: HeaderProps) {
     return { label, href };
   });
 
+  // On mobile: show only the current (last) page title
+  const currentPage = breadcrumbs[breadcrumbs.length - 1];
+
   return (
-    <header className="flex h-16 items-center justify-between border-b border-border bg-background px-4 md:px-6">
-      <div className="flex items-center gap-3">
-        {/* Mobile hamburger */}
+    <header className="sticky top-0 z-30 flex h-14 md:h-16 items-center justify-between border-b border-border/60 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80 px-3 md:px-6">
+      <div className="flex items-center gap-2 md:gap-3 min-w-0">
+        {/* Mobile: hamburger + brand */}
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden"
+          className="md:hidden shrink-0 h-9 w-9"
           onClick={onMobileMenuToggle}
         >
           <Menu className="h-5 w-5" />
         </Button>
 
-        {/* Breadcrumbs */}
-        <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        {/* Mobile brand mark */}
+        <Link href={`/${user.role}`} className="md:hidden shrink-0">
+          <span className="text-lg font-bold">
+            C<span className="text-primary">M.</span>
+          </span>
+        </Link>
+
+        {/* Mobile: show just current page */}
+        {currentPage && (
+          <span className="md:hidden text-sm font-medium text-foreground truncate">
+            {currentPage.label}
+          </span>
+        )}
+
+        {/* Desktop: full breadcrumbs */}
+        <nav className="hidden md:flex items-center gap-1 text-sm text-muted-foreground min-w-0">
           {breadcrumbs.map((crumb, i) => (
-            <span key={crumb.href} className="flex items-center gap-1.5">
-              {i > 0 && <span className="text-border">/</span>}
+            <span key={crumb.href} className="flex items-center gap-1 shrink-0">
+              {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />}
               {i === breadcrumbs.length - 1 ? (
                 <span className="font-medium text-foreground">
                   {crumb.label}
@@ -99,12 +116,14 @@ export function Header({ user, onMobileMenuToggle }: HeaderProps) {
         </nav>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center shrink-0">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-              <Avatar>
-                <AvatarFallback>{initials}</AvatarFallback>
+            <Button variant="ghost" className="relative h-9 w-9 md:h-10 md:w-10 rounded-full">
+              <Avatar className="h-8 w-8 md:h-9 md:w-9">
+                <AvatarFallback className="bg-primary/10 text-primary text-xs md:text-sm font-semibold">
+                  {initials}
+                </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
@@ -112,7 +131,7 @@ export function Header({ user, onMobileMenuToggle }: HeaderProps) {
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium">{user.full_name}</p>
-                <p className="text-xs text-muted-foreground">{user.email}</p>
+                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

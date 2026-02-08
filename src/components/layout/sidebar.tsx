@@ -21,6 +21,7 @@ import {
   ChevronRight,
   ChevronLeft,
   Settings,
+  X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -76,34 +77,46 @@ export function Sidebar({
   return (
     <div className="flex h-full w-full flex-col border-r border-border/50 bg-gradient-to-b from-sidebar to-background">
       {/* Logo */}
-      <div className="flex h-20 items-center px-6">
+      <div className="flex h-14 md:h-16 items-center justify-between px-4 md:px-6">
         <Link
           href={`/${role}`}
-          className="group"
+          className="group min-w-0"
           onClick={handleNavClick}
         >
           {collapsed ? (
-            <span className="text-2xl font-bold text-primary transition-transform duration-300 group-hover:scale-105 inline-block">
+            <span className="text-xl font-bold text-primary transition-transform duration-300 group-hover:scale-105 inline-block">
               CM.
             </span>
           ) : (
             <>
-              <span className="text-2xl font-bold transition-transform duration-300 group-hover:scale-105 inline-block">
+              <span className="text-xl font-bold transition-transform duration-300 group-hover:scale-105 inline-block">
                 Custodia<span className="text-primary">Med.</span>
               </span>
-              <p className="text-xs text-muted-foreground capitalize mt-0.5">
+              <p className="text-[11px] text-muted-foreground capitalize">
                 {role} Portal
               </p>
             </>
           )}
         </Link>
+
+        {/* Mobile close button */}
+        {onMobileClose && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0 md:hidden"
+            onClick={onMobileClose}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       <Separator className="opacity-50" />
 
       {/* Navigation */}
-      <ScrollArea className="flex-1 px-3 py-6">
-        <nav className="flex flex-col gap-2">
+      <ScrollArea className="flex-1 px-2 md:px-3 py-4 md:py-6">
+        <nav className="flex flex-col gap-1">
           {navItems.map((item) => {
             let isActive = pathname === item.href;
             if (!isActive && item.href !== `/${role}`) {
@@ -126,10 +139,10 @@ export function Sidebar({
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full h-12 font-medium transition-all duration-200",
+                    "w-full h-11 font-medium transition-all duration-200 rounded-lg",
                     collapsed
                       ? "justify-center px-0"
-                      : "justify-between gap-3 px-4",
+                      : "justify-between gap-3 px-3",
                     isActive
                       ? "bg-primary/10 text-primary hover:bg-primary/15 shadow-sm"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -149,12 +162,14 @@ export function Sidebar({
                     >
                       <item.icon
                         className={cn(
-                          "h-5 w-5 transition-colors",
+                          "h-[18px] w-[18px] transition-colors",
                           isActive ? "text-primary" : ""
                         )}
                       />
                     </div>
-                    {!collapsed && item.title}
+                    {!collapsed && (
+                      <span className="text-sm">{item.title}</span>
+                    )}
                   </div>
                   {!collapsed && isActive && (
                     <ChevronRight className="h-4 w-4 text-primary animate-fade-in-up" />
@@ -180,7 +195,7 @@ export function Sidebar({
       <Separator className="opacity-50" />
 
       {/* Footer - Settings & Logout */}
-      <div className="p-3 space-y-2">
+      <div className="p-2 md:p-3 space-y-1">
         {collapsed ? (
           <>
             <Tooltip>
@@ -189,13 +204,13 @@ export function Sidebar({
                   <Button
                     variant="ghost"
                     className={cn(
-                      "w-full justify-center h-12 px-0 font-medium",
+                      "w-full justify-center h-11 px-0 font-medium rounded-lg",
                       pathname === `/${role}/settings`
                         ? "bg-primary/10 text-primary"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                     )}
                   >
-                    <Settings className="h-5 w-5" />
+                    <Settings className="h-[18px] w-[18px]" />
                   </Button>
                 </Link>
               </TooltipTrigger>
@@ -205,10 +220,10 @@ export function Sidebar({
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="w-full justify-center h-12 px-0 font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  className="w-full justify-center h-11 px-0 font-medium rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                   onClick={handleLogout}
                 >
-                  <LogOut className="h-5 w-5" />
+                  <LogOut className="h-[18px] w-[18px]" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="right">Log out</TooltipContent>
@@ -220,27 +235,27 @@ export function Sidebar({
               <Button
                 variant="ghost"
                 className={cn(
-                  "w-full justify-start gap-3 h-12 px-4 font-medium",
+                  "w-full justify-start gap-3 h-11 px-3 font-medium rounded-lg",
                   pathname === `/${role}/settings`
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 )}
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg">
-                  <Settings className="h-5 w-5" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0">
+                  <Settings className="h-[18px] w-[18px]" />
                 </div>
-                Settings
+                <span className="text-sm">Settings</span>
               </Button>
             </Link>
             <Button
               variant="ghost"
-              className="w-full justify-start gap-3 h-12 px-4 font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              className="w-full justify-start gap-3 h-11 px-3 font-medium rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
               onClick={handleLogout}
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg">
-                <LogOut className="h-5 w-5" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0">
+                <LogOut className="h-[18px] w-[18px]" />
               </div>
-              Log out
+              <span className="text-sm">Log out</span>
             </Button>
           </>
         )}
@@ -253,7 +268,7 @@ export function Sidebar({
               variant="ghost"
               size="sm"
               onClick={onToggleCollapse}
-              className="w-full justify-center h-9 text-muted-foreground hover:text-foreground"
+              className="w-full justify-center h-8 text-muted-foreground hover:text-foreground rounded-lg"
             >
               {collapsed ? (
                 <ChevronRight className="h-4 w-4" />
