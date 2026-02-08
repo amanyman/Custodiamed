@@ -39,6 +39,8 @@ const patientNavItems: NavItem[] = [
 
 const providerNavItems: NavItem[] = [
   { title: "Getting Started", href: "/provider", icon: LayoutDashboard },
+  { title: "Upload Files", href: "/provider/files/upload", icon: Upload },
+  { title: "My Files", href: "/provider/files", icon: FolderOpen },
   { title: "Shared Studies", href: "/provider/studies", icon: FileText },
   { title: "Invite Patient", href: "/provider/invite", icon: Mail },
 ];

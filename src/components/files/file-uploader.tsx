@@ -91,7 +91,7 @@ function formatTime(seconds: number): string {
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024;
 
-export function FileUploader({ patientId }: { patientId: string }) {
+export function FileUploader({ uploaderType, ownerId }: { uploaderType: "patient" | "provider"; ownerId: string }) {
   const router = useRouter();
   const [step, setStep] = useState<"details" | "files" | "uploading" | "complete">("details");
   const [files, setFiles] = useState<FileWithPreview[]>([]);
@@ -161,7 +161,9 @@ export function FileUploader({ patientId }: { patientId: string }) {
       const { data: study, error: studyError } = await supabase
         .from("imaging_studies")
         .insert({
-          patient_id: patientId,
+          ...(uploaderType === "patient"
+            ? { patient_id: ownerId }
+            : { provider_id: ownerId }),
           study_date: studyDate,
           modality: modality,
           study_type: studyType || null,
@@ -183,7 +185,9 @@ export function FileUploader({ patientId }: { patientId: string }) {
 
         const fileExt = file.name.includes('.') ? file.name.split(".").pop() : 'dcm';
         const fileName = `${crypto.randomUUID()}.${fileExt}`;
-        const filePath = `${patientId}/${study.id}/${fileName}`;
+        const filePath = uploaderType === "patient"
+          ? `${ownerId}/${study.id}/${fileName}`
+          : `provider/${ownerId}/${study.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from("medical-files")
@@ -200,7 +204,9 @@ export function FileUploader({ patientId }: { patientId: string }) {
         const fileType = isDicomFile(file) ? "dicom" : "image";
 
         await supabase.from("medical_files").insert({
-          patient_id: patientId,
+          ...(uploaderType === "patient"
+            ? { patient_id: ownerId }
+            : { provider_id: ownerId }),
           study_id: study.id,
           original_filename: file.name,
           file_type: fileType,
@@ -223,35 +229,37 @@ export function FileUploader({ patientId }: { patientId: string }) {
         setTimeRemaining(formatTime(remainingSeconds));
       }
 
-      // Auto-share with connected providers
-      const { data: relationships } = await supabase
-        .from("patient_provider_relationships")
-        .select("provider_id")
-        .eq("patient_id", patientId)
-        .eq("status", "active");
+      // Auto-share with connected providers (patient uploads only)
+      if (uploaderType === "patient") {
+        const { data: relationships } = await supabase
+          .from("patient_provider_relationships")
+          .select("provider_id")
+          .eq("patient_id", ownerId)
+          .eq("status", "active");
 
-      if (relationships && relationships.length > 0) {
-        // Get all the medical files we just created for this study
-        const { data: studyFiles } = await supabase
-          .from("medical_files")
-          .select("id")
-          .eq("study_id", study.id);
+        if (relationships && relationships.length > 0) {
+          // Get all the medical files we just created for this study
+          const { data: studyFiles } = await supabase
+            .from("medical_files")
+            .select("id")
+            .eq("study_id", study.id);
 
-        if (studyFiles) {
-          // Create file shares for each file with each connected provider
-          const shareRecords = [];
-          for (const rel of relationships) {
-            for (const file of studyFiles) {
-              shareRecords.push({
-                file_id: file.id,
-                patient_id: patientId,
-                provider_id: rel.provider_id,
-              });
+          if (studyFiles) {
+            // Create file shares for each file with each connected provider
+            const shareRecords = [];
+            for (const rel of relationships) {
+              for (const file of studyFiles) {
+                shareRecords.push({
+                  file_id: file.id,
+                  patient_id: ownerId,
+                  provider_id: rel.provider_id,
+                });
+              }
             }
-          }
 
-          if (shareRecords.length > 0) {
-            await supabase.from("file_shares").insert(shareRecords);
+            if (shareRecords.length > 0) {
+              await supabase.from("file_shares").insert(shareRecords);
+            }
           }
         }
       }
@@ -260,7 +268,7 @@ export function FileUploader({ patientId }: { patientId: string }) {
       toast.success("Upload complete!");
 
       setTimeout(() => {
-        router.push("/patient/files");
+        router.push(uploaderType === "patient" ? "/patient/files" : "/provider/files");
         router.refresh();
       }, 2000);
 

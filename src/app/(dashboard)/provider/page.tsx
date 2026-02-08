@@ -28,12 +28,18 @@ export default async function ProviderDashboard() {
   }
 
   // Get counts for quick stats
-  const { count: pendingCount } = await supabase
-    .from("file_shares")
-    .select("*", { count: "exact", head: true })
-    .eq("provider_id", provider.id)
-    .eq("status", "active")
-    .is("reviewed_at", null);
+  const [{ count: pendingCount }, { count: ownFilesCount }] = await Promise.all([
+    supabase
+      .from("file_shares")
+      .select("*", { count: "exact", head: true })
+      .eq("provider_id", provider.id)
+      .eq("status", "active")
+      .is("reviewed_at", null),
+    supabase
+      .from("imaging_studies")
+      .select("*", { count: "exact", head: true })
+      .eq("provider_id", provider.id),
+  ]);
 
   return (
     <div className="space-y-8 max-w-4xl">
@@ -66,6 +72,36 @@ export default async function ProviderDashboard() {
           </CardContent>
         </Card>
       ) : null}
+
+      {/* Own Files Card */}
+      <Card className="bg-purple-500/5 border-purple-500/20">
+        <CardContent className="p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+              <Upload className="h-5 w-5 text-purple-500" />
+            </div>
+            <div>
+              {ownFilesCount && ownFilesCount > 0 ? (
+                <>
+                  <p className="font-medium">You have {ownFilesCount} uploaded {ownFilesCount === 1 ? 'study' : 'studies'}</p>
+                  <p className="text-sm text-muted-foreground">View and manage your uploaded files</p>
+                </>
+              ) : (
+                <>
+                  <p className="font-medium">Upload your own files</p>
+                  <p className="text-sm text-muted-foreground">Upload medical imaging files to your personal library</p>
+                </>
+              )}
+            </div>
+          </div>
+          <Link href={ownFilesCount && ownFilesCount > 0 ? "/provider/files" : "/provider/files/upload"}>
+            <Button size="sm" variant="outline" className="gap-2">
+              {ownFilesCount && ownFilesCount > 0 ? "View Files" : "Upload Files"}
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
 
       {/* Getting Started Steps */}
       <div className="space-y-6">

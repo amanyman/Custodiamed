@@ -19,32 +19,35 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
 interface DeleteAllButtonProps {
-  patientId: string;
+  ownerId: string;
+  ownerType: "patient" | "provider";
   studyCount: number;
   fileCount: number;
 }
 
-export function DeleteAllButton({ patientId, studyCount, fileCount }: DeleteAllButtonProps) {
+export function DeleteAllButton({ ownerId, ownerType, studyCount, fileCount }: DeleteAllButtonProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [open, setOpen] = useState(false);
   const router = useRouter();
+
+  const ownerColumn = ownerType === "patient" ? "patient_id" : "provider_id";
 
   const handleDeleteAll = async () => {
     setIsDeleting(true);
     const supabase = createClient();
 
     try {
-      // Get all studies for this patient
+      // Get all studies for this owner
       const { data: studies } = await supabase
         .from("imaging_studies")
         .select("id")
-        .eq("patient_id", patientId);
+        .eq(ownerColumn, ownerId);
 
-      // Get all files for this patient
+      // Get all files for this owner
       const { data: files } = await supabase
         .from("medical_files")
         .select("id, storage_path")
-        .eq("patient_id", patientId);
+        .eq(ownerColumn, ownerId);
 
       // Delete files from storage
       if (files && files.length > 0) {
@@ -58,10 +61,10 @@ export function DeleteAllButton({ patientId, studyCount, fileCount }: DeleteAllB
       await supabase
         .from("medical_files")
         .delete()
-        .eq("patient_id", patientId);
+        .eq(ownerColumn, ownerId);
 
-      // Delete all provider invitations for studies
-      if (studies && studies.length > 0) {
+      // Delete all provider invitations for studies (patient only)
+      if (ownerType === "patient" && studies && studies.length > 0) {
         const studyIds = studies.map(s => s.id);
         await supabase
           .from("provider_invitations")
@@ -73,7 +76,7 @@ export function DeleteAllButton({ patientId, studyCount, fileCount }: DeleteAllB
       await supabase
         .from("imaging_studies")
         .delete()
-        .eq("patient_id", patientId);
+        .eq(ownerColumn, ownerId);
 
       toast.success("All files deleted successfully");
       setOpen(false);
@@ -105,7 +108,7 @@ export function DeleteAllButton({ patientId, studyCount, fileCount }: DeleteAllB
             This will permanently delete {studyCount > 0 ? `${studyCount} ${studyCount === 1 ? 'study' : 'studies'}` : ''}
             {studyCount > 0 && fileCount > 0 ? ' and ' : ''}
             {fileCount > 0 ? `${fileCount} ${fileCount === 1 ? 'file' : 'files'}` : ''}.
-            This action cannot be undone. All shared links will also stop working.
+            This action cannot be undone.{ownerType === "patient" && " All shared links will also stop working."}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

@@ -41,7 +41,7 @@ export default async function UploadPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <FileUploader patientId={patient.id} />
+          <FileUploader uploaderType="patient" ownerId={patient.id} />
         </CardContent>
       </Card>
     </div>

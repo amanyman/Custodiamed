@@ -105,7 +105,8 @@ export default async function FilesPage({ searchParams }: FilesPageProps) {
         </div>
         <div className="flex items-center gap-3">
           <DeleteAllButton
-            patientId={patient.id}
+            ownerId={patient.id}
+            ownerType="patient"
             studyCount={studyCount}
             fileCount={legacyFileCount}
           />
