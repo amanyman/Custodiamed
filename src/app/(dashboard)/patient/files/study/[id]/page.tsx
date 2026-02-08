@@ -10,9 +10,9 @@ import {
   Calendar,
   HardDrive,
   Share2,
-  Download,
   Trash2
 } from "lucide-react";
+import { DownloadStudyButton } from "@/components/files/download-study-button";
 
 export default async function StudyDetailPage({
   params,
@@ -63,10 +63,15 @@ export default async function StudyDetailPage({
             <p className="text-muted-foreground">{study.description}</p>
           )}
         </div>
-        <Button variant="outline" className="gap-2">
-          <Share2 className="h-4 w-4" />
-          Share Study
-        </Button>
+        <div className="flex gap-2">
+          <DownloadStudyButton studyId={id} studyName={study.modality} />
+          <Link href={`/patient/files/study/${id}/share`}>
+            <Button variant="outline" className="gap-2">
+              <Share2 className="h-4 w-4" />
+              Share Study
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Study Info */}

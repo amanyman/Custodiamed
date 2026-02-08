@@ -14,15 +14,19 @@ export default async function ViewerPage({ params }: ViewerPageProps) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) {
+    redirect("/login");
+  }
+
   // Get provider
   const { data: provider } = await supabase
     .from("providers")
     .select("id")
-    .eq("user_id", user!.id)
+    .eq("user_id", user.id)
     .single();
 
   if (!provider) {
-    redirect("/provider");
+    redirect("/login");
   }
 
   // Get the file share and related files

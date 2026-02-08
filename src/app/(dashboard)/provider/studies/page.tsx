@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, User, Calendar, Eye, Clock } from "lucide-react";
@@ -11,14 +12,29 @@ export default async function SharedStudiesPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) {
+    redirect("/login");
+  }
+
   // Get provider record
   const { data: provider } = await supabase
     .from("providers")
     .select("id")
-    .eq("user_id", user!.id)
+    .eq("user_id", user.id)
     .single();
 
-  // Get all shared studies
+  if (!provider) {
+    redirect("/login");
+  }
+
+  // Expire old shares before querying
+  try {
+    await supabase.rpc("expire_old_shares");
+  } catch {
+    // Function may not exist yet - that's ok
+  }
+
+  // Get all shared studies (exclude expired)
   const { data: shares } = await supabase
     .from("file_shares")
     .select(`
@@ -26,6 +42,7 @@ export default async function SharedStudiesPage() {
       status,
       created_at,
       reviewed_at,
+      expires_at,
       medical_files(
         id,
         original_filename,
@@ -39,7 +56,7 @@ export default async function SharedStudiesPage() {
         profiles(full_name, email)
       )
     `)
-    .eq("provider_id", provider?.id || "")
+    .eq("provider_id", provider.id)
     .eq("status", "active")
     .order("created_at", { ascending: false });
 

@@ -12,8 +12,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DeleteAllButton } from "@/components/files/delete-all-button";
+import { StudyFilters } from "@/components/files/study-filters";
 
-export default async function FilesPage() {
+interface FilesPageProps {
+  searchParams: Promise<{ search?: string; modality?: string; sort?: string }>;
+}
+
+export default async function FilesPage({ searchParams }: FilesPageProps) {
+  const params = await searchParams;
   const supabase = await createClient();
 
   const {
@@ -34,13 +40,43 @@ export default async function FilesPage() {
     redirect("/login");
   }
 
-  // Run queries in parallel for faster loading
+  // Build study query with filters
+  let studyQuery = supabase
+    .from("imaging_studies")
+    .select("*")
+    .eq("patient_id", patient.id);
+
+  // Apply modality filter
+  if (params.modality && params.modality !== "all") {
+    studyQuery = studyQuery.eq("modality", params.modality);
+  }
+
+  // Apply search filter
+  if (params.search) {
+    studyQuery = studyQuery.or(
+      `modality.ilike.%${params.search}%,study_type.ilike.%${params.search}%,description.ilike.%${params.search}%,facility_name.ilike.%${params.search}%`
+    );
+  }
+
+  // Apply sorting
+  const sort = params.sort || "date-desc";
+  switch (sort) {
+    case "date-asc":
+      studyQuery = studyQuery.order("study_date", { ascending: true });
+      break;
+    case "size-desc":
+      studyQuery = studyQuery.order("total_size", { ascending: false });
+      break;
+    case "size-asc":
+      studyQuery = studyQuery.order("total_size", { ascending: true });
+      break;
+    default:
+      studyQuery = studyQuery.order("study_date", { ascending: false });
+  }
+
+  // Run queries in parallel
   const [studiesResult, legacyFilesResult] = await Promise.all([
-    supabase
-      .from("imaging_studies")
-      .select("*")
-      .eq("patient_id", patient.id)
-      .order("study_date", { ascending: false }),
+    studyQuery,
     supabase
       .from("medical_files")
       .select("*")
@@ -82,22 +118,32 @@ export default async function FilesPage() {
         </div>
       </div>
 
+      {/* Filters */}
+      <StudyFilters />
+
       {!hasStudies && !hasLegacyFiles ? (
         <Card className="border-0 shadow-soft">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 mb-4">
               <FileImage className="h-10 w-10 text-primary" />
             </div>
-            <h3 className="text-xl font-semibold">No files yet</h3>
+            <h3 className="text-xl font-semibold">
+              {params.search || params.modality ? "No matching studies" : "No files yet"}
+            </h3>
             <p className="mt-2 text-center text-muted-foreground max-w-md">
-              Upload your medical imaging files from CDs or your device to get started
+              {params.search || params.modality
+                ? "Try adjusting your search or filters"
+                : "Upload your medical imaging files from CDs or your device to get started"
+              }
             </p>
-            <Link href="/patient/files/upload" className="mt-6">
-              <Button size="lg" className="btn-glow shadow-lg shadow-primary/25">
-                <Upload className="mr-2 h-5 w-5" />
-                Upload Your First Study
-              </Button>
-            </Link>
+            {!params.search && !params.modality && (
+              <Link href="/patient/files/upload" className="mt-6">
+                <Button size="lg" className="btn-glow shadow-lg shadow-primary/25">
+                  <Upload className="mr-2 h-5 w-5" />
+                  Upload Your First Study
+                </Button>
+              </Link>
+            )}
           </CardContent>
         </Card>
       ) : (

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Link2, FileText, Eye } from "lucide-react";
@@ -11,18 +12,26 @@ export default async function ProviderDashboard() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) {
+    redirect("/login");
+  }
+
   // Get provider record
   const { data: provider } = await supabase
     .from("providers")
     .select("id, practice_name")
-    .eq("user_id", user!.id)
+    .eq("user_id", user.id)
     .single();
+
+  if (!provider) {
+    redirect("/login");
+  }
 
   // Get counts for quick stats
   const { count: pendingCount } = await supabase
     .from("file_shares")
     .select("*", { count: "exact", head: true })
-    .eq("provider_id", provider?.id || "")
+    .eq("provider_id", provider.id)
     .eq("status", "active")
     .is("reviewed_at", null);
 

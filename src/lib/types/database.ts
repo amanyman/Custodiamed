@@ -59,6 +59,7 @@ export interface PatientProviderRelationship {
 export interface MedicalFile {
   id: string;
   patient_id: string;
+  study_id: string | null;
   original_filename: string;
   file_type: string;
   file_size: number;
@@ -82,6 +83,36 @@ export interface FileShare {
   expires_at: string | null;
   provider_notes: string | null;
   reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ImagingStudy {
+  id: string;
+  patient_id: string;
+  study_date: string;
+  modality: string;
+  study_type: string | null;
+  description: string | null;
+  facility_name: string | null;
+  facility_phone: string | null;
+  facility_email: string | null;
+  file_count: number;
+  total_size: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProviderInvitation {
+  id: string;
+  patient_id: string;
+  study_id: string;
+  provider_email: string;
+  provider_name: string | null;
+  message: string | null;
+  token: string;
+  status: InvitationStatus;
+  expires_at: string;
   created_at: string;
   updated_at: string;
 }
@@ -159,6 +190,16 @@ export interface Database {
         Row: MedicalFile;
         Insert: Omit<MedicalFile, "id" | "created_at" | "updated_at">;
         Update: Partial<Omit<MedicalFile, "id" | "created_at">>;
+      };
+      imaging_studies: {
+        Row: ImagingStudy;
+        Insert: Omit<ImagingStudy, "id" | "created_at" | "updated_at">;
+        Update: Partial<Omit<ImagingStudy, "id" | "created_at">>;
+      };
+      provider_invitations: {
+        Row: ProviderInvitation;
+        Insert: Omit<ProviderInvitation, "id" | "token" | "created_at" | "updated_at">;
+        Update: Partial<Omit<ProviderInvitation, "id" | "token" | "created_at">>;
       };
       file_shares: {
         Row: FileShare;
