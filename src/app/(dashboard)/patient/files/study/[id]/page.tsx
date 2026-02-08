@@ -58,7 +58,7 @@ export default async function StudyDetailPage({
           </Button>
         </Link>
         <div className="flex-1">
-          <h2 className="text-3xl font-bold">{study.modality} Study</h2>
+          <h2 className="text-2xl font-bold tracking-tight">{study.modality} Study</h2>
           {study.description && (
             <p className="text-muted-foreground">{study.description}</p>
           )}

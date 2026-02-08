@@ -7,14 +7,19 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   LayoutDashboard,
   FolderOpen,
   Upload,
-  Users,
   LogOut,
   Mail,
   FileText,
   ChevronRight,
+  ChevronLeft,
   Settings,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -40,13 +45,17 @@ const providerNavItems: NavItem[] = [
 
 interface SidebarProps {
   role: "patient" | "provider";
-  user?: {
-    email: string;
-    full_name: string;
-  };
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+  onMobileClose?: () => void;
 }
 
-export function Sidebar({ role }: SidebarProps) {
+export function Sidebar({
+  role,
+  collapsed = false,
+  onToggleCollapse,
+  onMobileClose,
+}: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const navItems = role === "patient" ? patientNavItems : providerNavItems;
@@ -58,58 +67,82 @@ export function Sidebar({ role }: SidebarProps) {
     router.refresh();
   };
 
+  const handleNavClick = () => {
+    onMobileClose?.();
+  };
+
   return (
-    <div className="flex h-full w-72 flex-col border-r border-border/50 bg-gradient-to-b from-sidebar to-background">
+    <div className="flex h-full w-full flex-col border-r border-border/50 bg-gradient-to-b from-sidebar to-background">
       {/* Logo */}
       <div className="flex h-20 items-center px-6">
-        <Link href={`/${role}`} className="group">
-          <span className="text-2xl font-bold transition-transform duration-300 group-hover:scale-105 inline-block">
-            Custodia<span className="text-primary">Med.</span>
-          </span>
-          <p className="text-xs text-muted-foreground capitalize mt-0.5">
-            {role} Portal
-          </p>
+        <Link
+          href={`/${role}`}
+          className="group"
+          onClick={handleNavClick}
+        >
+          {collapsed ? (
+            <span className="text-2xl font-bold text-primary transition-transform duration-300 group-hover:scale-105 inline-block">
+              CM.
+            </span>
+          ) : (
+            <>
+              <span className="text-2xl font-bold transition-transform duration-300 group-hover:scale-105 inline-block">
+                Custodia<span className="text-primary">Med.</span>
+              </span>
+              <p className="text-xs text-muted-foreground capitalize mt-0.5">
+                {role} Portal
+              </p>
+            </>
+          )}
         </Link>
       </div>
 
       <Separator className="opacity-50" />
 
       {/* Navigation */}
-      <ScrollArea className="flex-1 px-4 py-6">
+      <ScrollArea className="flex-1 px-3 py-6">
         <nav className="flex flex-col gap-2">
           {navItems.map((item) => {
-            // Smart matching: exact match, or starts with (for nested pages like /files/study/[id])
-            // but exclude when a more specific nav item matches (upload is under files)
             let isActive = pathname === item.href;
             if (!isActive && item.href !== `/${role}`) {
               const startsWithHref = pathname.startsWith(item.href);
-              // Check if another nav item is a more specific match
               const hasMoreSpecificMatch = navItems.some(
-                other => other.href !== item.href &&
-                         pathname.startsWith(other.href) &&
-                         other.href.length > item.href.length
+                (other) =>
+                  other.href !== item.href &&
+                  pathname.startsWith(other.href) &&
+                  other.href.length > item.href.length
               );
               isActive = startsWithHref && !hasMoreSpecificMatch;
             }
 
-            return (
-              <Link key={item.href} href={item.href}>
+            const linkContent = (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={handleNavClick}
+              >
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-between gap-3 h-12 px-4 font-medium transition-all duration-200",
+                    "w-full h-12 font-medium transition-all duration-200",
+                    collapsed
+                      ? "justify-center px-0"
+                      : "justify-between gap-3 px-4",
                     isActive
                       ? "bg-primary/10 text-primary hover:bg-primary/15 shadow-sm"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   )}
                 >
-                  <div className="flex items-center gap-3">
+                  <div
+                    className={cn(
+                      "flex items-center",
+                      collapsed ? "justify-center" : "gap-3"
+                    )}
+                  >
                     <div
                       className={cn(
-                        "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
-                        isActive
-                          ? "bg-primary/10"
-                          : "bg-transparent"
+                        "flex h-8 w-8 items-center justify-center rounded-lg transition-colors shrink-0",
+                        isActive ? "bg-primary/10" : "bg-transparent"
                       )}
                     >
                       <item.icon
@@ -119,14 +152,25 @@ export function Sidebar({ role }: SidebarProps) {
                         )}
                       />
                     </div>
-                    {item.title}
+                    {!collapsed && item.title}
                   </div>
-                  {isActive && (
+                  {!collapsed && isActive && (
                     <ChevronRight className="h-4 w-4 text-primary animate-fade-in-up" />
                   )}
                 </Button>
               </Link>
             );
+
+            if (collapsed) {
+              return (
+                <Tooltip key={item.href}>
+                  <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                  <TooltipContent side="right">{item.title}</TooltipContent>
+                </Tooltip>
+              );
+            }
+
+            return linkContent;
           })}
         </nav>
       </ScrollArea>
@@ -134,33 +178,89 @@ export function Sidebar({ role }: SidebarProps) {
       <Separator className="opacity-50" />
 
       {/* Footer - Settings & Logout */}
-      <div className="p-4 space-y-2">
-        <Link href={`/${role}/settings`}>
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start gap-3 h-12 px-4 font-medium",
-              pathname === `/${role}/settings`
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-            )}
-          >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg">
-              <Settings className="h-5 w-5" />
-            </div>
-            Settings
-          </Button>
-        </Link>
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-3 h-12 px-4 font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-          onClick={handleLogout}
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg">
-            <LogOut className="h-5 w-5" />
-          </div>
-          Log out
-        </Button>
+      <div className="p-3 space-y-2">
+        {collapsed ? (
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link href={`/${role}/settings`} onClick={handleNavClick}>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-center h-12 px-0 font-medium",
+                      pathname === `/${role}/settings`
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    <Settings className="h-5 w-5" />
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="right">Settings</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-center h-12 px-0 font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Log out</TooltipContent>
+            </Tooltip>
+          </>
+        ) : (
+          <>
+            <Link href={`/${role}/settings`} onClick={handleNavClick}>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start gap-3 h-12 px-4 font-medium",
+                  pathname === `/${role}/settings`
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                )}
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg">
+                  <Settings className="h-5 w-5" />
+                </div>
+                Settings
+              </Button>
+            </Link>
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 h-12 px-4 font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              onClick={handleLogout}
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg">
+                <LogOut className="h-5 w-5" />
+              </div>
+              Log out
+            </Button>
+          </>
+        )}
+
+        {/* Collapse toggle - desktop only */}
+        {onToggleCollapse && (
+          <>
+            <Separator className="opacity-50" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onToggleCollapse}
+              className="w-full justify-center h-9 text-muted-foreground hover:text-foreground"
+            >
+              {collapsed ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <ChevronLeft className="h-4 w-4" />
+              )}
+            </Button>
+          </>
+        )}
       </div>
     </div>
   );

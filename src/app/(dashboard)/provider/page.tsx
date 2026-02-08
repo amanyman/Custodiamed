@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Link2, FileText, Eye } from "lucide-react";
+import { ArrowRight, Link2, FileText, Eye, Upload, User, Monitor, Search } from "lucide-react";
 import Link from "next/link";
 
 export default async function ProviderDashboard() {
@@ -38,7 +38,7 @@ export default async function ProviderDashboard() {
   return (
     <div className="space-y-8 max-w-4xl">
       <div>
-        <h2 className="text-3xl font-bold">Welcome, {provider?.practice_name}</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Welcome, {provider?.practice_name}</h2>
         <p className="text-muted-foreground mt-1">
           Here&apos;s how to receive and view medical imaging from your patients
         </p>
@@ -78,17 +78,9 @@ export default async function ProviderDashboard() {
               <div className="flex flex-col md:flex-row">
                 <div className="bg-blue-500/10 p-8 flex items-center justify-center md:w-48">
                   <div className="relative">
-                    {/* Link icon with share visual */}
-                    <svg width="120" height="100" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      {/* Chain link */}
-                      <rect x="20" y="30" width="35" height="40" rx="8" stroke="#3b82f6" strokeWidth="3" fill="none"/>
-                      <rect x="65" y="30" width="35" height="40" rx="8" stroke="#3b82f6" strokeWidth="3" fill="none"/>
-                      {/* Connecting link */}
-                      <path d="M55 50 L65 50" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round"/>
-                      {/* Share arrows */}
-                      <path d="M100 25 L110 35 L100 45" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M10 55 L0 65 L10 75" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+                    <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center shadow-soft">
+                      <Link2 className="h-12 w-12 text-blue-500" />
+                    </div>
                   </div>
                 </div>
                 <div className="p-6 flex-1">
@@ -117,18 +109,12 @@ export default async function ProviderDashboard() {
               <div className="flex flex-col md:flex-row">
                 <div className="bg-purple-500/10 p-8 flex items-center justify-center md:w-48">
                   <div className="relative">
-                    {/* Patient uploading visual */}
-                    <svg width="120" height="100" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      {/* Person icon */}
-                      <circle cx="40" cy="25" r="12" stroke="#a855f7" strokeWidth="2.5" fill="none"/>
-                      <path d="M20 65 Q20 45 40 45 Q60 45 60 65" stroke="#a855f7" strokeWidth="2.5" fill="none"/>
-                      {/* Arrow to cloud */}
-                      <path d="M65 50 L85 50" stroke="#c084fc" strokeWidth="2" strokeLinecap="round"/>
-                      <path d="M78 43 L85 50 L78 57" stroke="#c084fc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      {/* Cloud/upload box */}
-                      <rect x="90" y="35" width="25" height="30" rx="4" stroke="#a855f7" strokeWidth="2.5" fill="none"/>
-                      <path d="M102 55 L102 45 M97 50 L102 45 L107 50" stroke="#a855f7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+                    <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center shadow-soft">
+                      <Upload className="h-10 w-10 text-purple-500" />
+                      <div className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-purple-500 flex items-center justify-center shadow-md">
+                        <User className="h-4 w-4 text-white" />
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div className="p-6 flex-1">
@@ -151,22 +137,12 @@ export default async function ProviderDashboard() {
               <div className="flex flex-col md:flex-row">
                 <div className="bg-green-500/10 p-8 flex items-center justify-center md:w-48">
                   <div className="relative">
-                    {/* Viewer/analysis visual */}
-                    <svg width="120" height="100" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      {/* Monitor */}
-                      <rect x="15" y="15" width="90" height="55" rx="4" stroke="#22c55e" strokeWidth="2.5" fill="none"/>
-                      {/* Screen content - grid */}
-                      <line x1="60" y1="20" x2="60" y2="65" stroke="#4ade80" strokeWidth="1.5" opacity="0.5"/>
-                      <line x1="20" y1="42" x2="100" y2="42" stroke="#4ade80" strokeWidth="1.5" opacity="0.5"/>
-                      {/* Medical cross */}
-                      <rect x="50" y="32" width="20" height="20" rx="2" fill="none" stroke="#22c55e" strokeWidth="2"/>
-                      <path d="M55 42 L65 42 M60 37 L60 47" stroke="#22c55e" strokeWidth="2" strokeLinecap="round"/>
-                      {/* Monitor stand */}
-                      <path d="M60 70 L60 80 M45 80 L75 80" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round"/>
-                      {/* Magnifier */}
-                      <circle cx="95" cy="75" r="10" stroke="#4ade80" strokeWidth="2" fill="none"/>
-                      <path d="M102 82 L110 90" stroke="#4ade80" strokeWidth="2" strokeLinecap="round"/>
-                    </svg>
+                    <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center shadow-soft">
+                      <Monitor className="h-10 w-10 text-green-500" />
+                      <div className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-green-500 flex items-center justify-center shadow-md">
+                        <Search className="h-4 w-4 text-white" />
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div className="p-6 flex-1">

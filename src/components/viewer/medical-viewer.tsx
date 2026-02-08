@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
@@ -46,12 +45,14 @@ import {
   Crosshair,
   ScanLine,
   Trash2,
-  MousePointer,
-  Settings,
+  Brain,
+  Search,
+  Keyboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AiAnalysisPanel } from "./ai-analysis-panel";
 
-// Window/Level presets - standard radiology values
+// ─── Window/Level Presets ────────────────────────────────────────────────────
 const WINDOW_PRESETS = {
   default: { window: 400, level: 40, name: "Default", shortcut: "1" },
   lung: { window: 1500, level: -600, name: "Lung", shortcut: "2" },
@@ -64,7 +65,23 @@ const WINDOW_PRESETS = {
   spine: { window: 250, level: 50, name: "Spine", shortcut: "9" },
 };
 
-type Tool = "pointer" | "pan" | "zoom" | "windowLevel" | "crosshair" | "distance" | "angle" | "area" | "arrow" | "text" | "freehand" | "ellipse";
+const MAGNIFIER_SIZE = 180;
+const MAGNIFIER_ZOOM = 3;
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+type Tool =
+  | "pan"
+  | "zoom"
+  | "windowLevel"
+  | "crosshair"
+  | "magnifier"
+  | "distance"
+  | "angle"
+  | "area"
+  | "arrow"
+  | "text"
+  | "freehand"
+  | "ellipse";
 
 interface Point {
   x: number;
@@ -91,14 +108,19 @@ interface MedicalViewerProps {
   onClose?: () => void;
 }
 
-export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps) {
-  // Image state
+// ─── Component ───────────────────────────────────────────────────────────────
+export function MedicalViewer({
+  images,
+  studyInfo,
+  onClose,
+}: MedicalViewerProps) {
+  // ── Image state ──
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playSpeed, setPlaySpeed] = useState(500);
   const [imageLoaded, setImageLoaded] = useState(false);
 
-  // Transform state
+  // ── Transform state ──
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
   const [rotation, setRotation] = useState(0);
@@ -106,34 +128,42 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
   const [flipV, setFlipV] = useState(false);
   const [invert, setInvert] = useState(false);
 
-  // Window/Level state
+  // ── Window/Level state ──
   const [windowWidth, setWindowWidth] = useState(400);
   const [windowCenter, setWindowCenter] = useState(40);
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
 
-  // Tool state
+  // ── Tool state ──
   const [activeTool, setActiveTool] = useState<Tool>("pan");
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
-  const [currentAnnotation, setCurrentAnnotation] = useState<Annotation | null>(null);
+  const [currentAnnotation, setCurrentAnnotation] =
+    useState<Annotation | null>(null);
 
-  // Layout state
+  // ── Text annotation state ──
+  const [textInputPos, setTextInputPos] = useState<Point | null>(null);
+  const [textInputValue, setTextInputValue] = useState("");
+
+  // ── Layout state ──
   const [gridLayout, setGridLayout] = useState<"1x1" | "1x2" | "2x2">("1x1");
   const [showInfo, setShowInfo] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showThumbnails, setShowThumbnails] = useState(images.length > 1);
-  const [showShortcuts, setShowShortcuts] = useState(false);
   const [cursorPos, setCursorPos] = useState<Point | null>(null);
+  const [showAiPanel, setShowAiPanel] = useState(false);
 
-  // Refs
+  // ── Refs ──
   const containerRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const textInputRef = useRef<HTMLInputElement>(null);
   const isDragging = useRef(false);
   const dragStart = useRef<Point>({ x: 0, y: 0 });
   const initialPan = useRef<Point>({ x: 0, y: 0 });
   const initialWindowLevel = useRef({ window: 400, level: 40 });
 
-  // Auto-play functionality
+  // ── Effects ────────────────────────────────────────────────────────────────
+
+  // Auto-play
   useEffect(() => {
     if (isPlaying && images.length > 1) {
       const interval = setInterval(() => {
@@ -156,11 +186,21 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
     preload(currentIndex + 2);
   }, [currentIndex, images]);
 
-  // Handle keyboard shortcuts
+  // Focus text input when it appears
+  useEffect(() => {
+    if (textInputPos && textInputRef.current) {
+      textInputRef.current.focus();
+    }
+  }, [textInputPos]);
+
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      )
+        return;
 
       switch (e.key) {
         case "ArrowLeft":
@@ -173,7 +213,7 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
           break;
         case "ArrowUp":
           e.preventDefault();
-          setZoom((prev) => Math.min(8, prev * 1.1));
+          setZoom((prev) => Math.min(10, prev * 1.1));
           break;
         case "ArrowDown":
           e.preventDefault();
@@ -210,8 +250,8 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
         case "c":
           setActiveTool("crosshair");
           break;
-        case "h":
-          setShowShortcuts((prev) => !prev);
+        case "m":
+          setActiveTool("magnifier");
           break;
         case "t":
           setShowThumbnails((prev) => !prev);
@@ -221,14 +261,23 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
           undoAnnotation();
           break;
         case "Escape":
-          if (isFullscreen) {
+          if (textInputPos) {
+            setTextInputPos(null);
+            setTextInputValue("");
+          } else if (isFullscreen) {
             document.exitFullscreen();
           }
           setActiveTool("pan");
           break;
-        // Number keys for W/L presets
-        case "1": case "2": case "3": case "4": case "5":
-        case "6": case "7": case "8": case "9": {
+        case "1":
+        case "2":
+        case "3":
+        case "4":
+        case "5":
+        case "6":
+        case "7":
+        case "8":
+        case "9": {
           const presetKeys = Object.keys(WINDOW_PRESETS);
           const idx = parseInt(e.key) - 1;
           if (idx < presetKeys.length) {
@@ -241,7 +290,7 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [images.length, isFullscreen]);
+  }, [images.length, isFullscreen, textInputPos]);
 
   // Fullscreen change listener
   useEffect(() => {
@@ -249,46 +298,79 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
       setIsFullscreen(!!document.fullscreenElement);
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
-  // Mouse handlers
-  const getImageCoords = useCallback((e: React.MouseEvent): Point => {
-    const rect = viewportRef.current?.getBoundingClientRect();
-    if (!rect) return { x: 0, y: 0 };
-    return {
-      x: (e.clientX - rect.left - pan.x) / zoom,
-      y: (e.clientY - rect.top - pan.y) / zoom,
-    };
-  }, [pan, zoom]);
+  // ── Handlers ───────────────────────────────────────────────────────────────
+
+  const getImageCoords = useCallback(
+    (e: React.MouseEvent): Point => {
+      const rect = viewportRef.current?.getBoundingClientRect();
+      if (!rect) return { x: 0, y: 0 };
+      return {
+        x: (e.clientX - rect.left - pan.x) / zoom,
+        y: (e.clientY - rect.top - pan.y) / zoom,
+      };
+    },
+    [pan, zoom]
+  );
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
+
+      // Handle text tool click
+      if (activeTool === "text") {
+        const coords = getImageCoords(e);
+        setTextInputPos(coords);
+        setTextInputValue("");
+        return;
+      }
+
       isDragging.current = true;
       dragStart.current = { x: e.clientX, y: e.clientY };
       initialPan.current = { ...pan };
       initialWindowLevel.current = { window: windowWidth, level: windowCenter };
 
-      const measurementTools: Tool[] = ["distance", "angle", "area", "arrow", "freehand", "ellipse"];
+      const measurementTools: Tool[] = [
+        "distance",
+        "angle",
+        "area",
+        "arrow",
+        "freehand",
+        "ellipse",
+      ];
       if (measurementTools.includes(activeTool)) {
         const coords = getImageCoords(e);
         setCurrentAnnotation({
           id: Date.now().toString(),
           type: activeTool,
           points: [coords],
-          color: "#00ff00",
+          color: "#22d3ee",
           imageIndex: currentIndex,
         });
       }
     },
-    [activeTool, pan, zoom, windowWidth, windowCenter, currentIndex, getImageCoords]
+    [
+      activeTool,
+      pan,
+      zoom,
+      windowWidth,
+      windowCenter,
+      currentIndex,
+      getImageCoords,
+    ]
   );
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
-      // Track cursor position for crosshair tool
-      if (activeTool === "crosshair" || showInfo) {
+      // Track cursor for crosshair, magnifier, and info
+      if (
+        activeTool === "crosshair" ||
+        activeTool === "magnifier" ||
+        showInfo
+      ) {
         const rect = viewportRef.current?.getBoundingClientRect();
         if (rect) {
           setCursorPos({
@@ -304,7 +386,6 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
       const dy = e.clientY - dragStart.current.y;
 
       switch (activeTool) {
-        case "pointer":
         case "pan":
           setPan({
             x: initialPan.current.x + dx,
@@ -313,18 +394,25 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
           break;
         case "zoom": {
           const zoomDelta = dy * -0.005;
-          setZoom((prev) => Math.max(0.1, Math.min(8, prev + zoomDelta * prev)));
+          setZoom((prev) =>
+            Math.max(0.1, Math.min(10, prev + zoomDelta * prev))
+          );
           break;
         }
         case "windowLevel":
-          setWindowWidth(Math.max(1, initialWindowLevel.current.window + dx * 4));
+          setWindowWidth(
+            Math.max(1, initialWindowLevel.current.window + dx * 4)
+          );
           setWindowCenter(initialWindowLevel.current.level - dy * 2);
-          // Map window/level to CSS brightness/contrast
-          setBrightness(Math.max(0, Math.min(400, 100 + (40 - windowCenter) * 0.5)));
-          setContrast(Math.max(0, Math.min(400, 100 + (windowWidth - 400) * 0.05)));
+          setBrightness(
+            Math.max(0, Math.min(400, 100 + (40 - windowCenter) * 0.5))
+          );
+          setContrast(
+            Math.max(0, Math.min(400, 100 + (windowWidth - 400) * 0.05))
+          );
           break;
         case "crosshair":
-          // Crosshair doesn't drag
+        case "magnifier":
           break;
         case "distance":
         case "arrow": {
@@ -376,7 +464,16 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
         }
       }
     },
-    [activeTool, currentAnnotation, pan, zoom, getImageCoords, showInfo, windowCenter, windowWidth]
+    [
+      activeTool,
+      currentAnnotation,
+      pan,
+      zoom,
+      getImageCoords,
+      showInfo,
+      windowCenter,
+      windowWidth,
+    ]
   );
 
   const handleMouseUp = useCallback(() => {
@@ -391,11 +488,9 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
     (e: React.WheelEvent) => {
       e.preventDefault();
       if (e.ctrlKey || e.metaKey) {
-        // Zoom with Ctrl/Cmd + scroll
         const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        setZoom((prev) => Math.max(0.1, Math.min(8, prev * delta)));
+        setZoom((prev) => Math.max(0.1, Math.min(10, prev * delta)));
       } else {
-        // Navigate through images
         if (e.deltaY > 0) {
           setCurrentIndex((prev) => Math.min(images.length - 1, prev + 1));
         } else {
@@ -406,7 +501,26 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
     [images.length]
   );
 
-  // Actions
+  const handleTextSubmit = useCallback(() => {
+    if (textInputPos && textInputValue.trim()) {
+      setAnnotations((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          type: "text" as Tool,
+          points: [textInputPos],
+          text: textInputValue.trim(),
+          color: "#22d3ee",
+          imageIndex: currentIndex,
+        },
+      ]);
+    }
+    setTextInputPos(null);
+    setTextInputValue("");
+  }, [textInputPos, textInputValue, currentIndex]);
+
+  // ── Actions ────────────────────────────────────────────────────────────────
+
   const resetView = () => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
@@ -445,13 +559,15 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
     setAnnotations([]);
   };
 
-  // Calculate distance between two points (in mm, assuming 1px = 0.25mm for demo)
+  // ── Calculations ───────────────────────────────────────────────────────────
+
   const calculateDistance = (p1: Point, p2: Point) => {
-    const px = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+    const px = Math.sqrt(
+      Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2)
+    );
     return (px * 0.25).toFixed(1);
   };
 
-  // Calculate angle between three points
   const calculateAngle = (points: Point[]) => {
     if (points.length < 3) return "0";
     const [p1, p2, p3] = points;
@@ -463,94 +579,146 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
     return angle.toFixed(1);
   };
 
-  // Image transform style
+  // ── Computed values ────────────────────────────────────────────────────────
+
   const imageTransform = {
     transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom}) rotate(${rotation}deg) scaleX(${flipH ? -1 : 1}) scaleY(${flipV ? -1 : 1})`,
     filter: `brightness(${brightness}%) contrast(${contrast}%) ${invert ? "invert(1)" : ""}`,
     transition: isDragging.current ? "none" : "transform 0.15s ease-out",
   };
 
-  // Cursor based on active tool
   const getCursor = () => {
     switch (activeTool) {
-      case "pan": return "grab";
-      case "zoom": return "zoom-in";
-      case "windowLevel": return "col-resize";
-      case "crosshair": return "crosshair";
-      case "distance": case "angle": case "area": case "ellipse": return "crosshair";
-      case "arrow": return "crosshair";
-      case "freehand": return "crosshair";
-      case "text": return "text";
-      default: return "default";
+      case "pan":
+        return "grab";
+      case "zoom":
+        return "zoom-in";
+      case "windowLevel":
+        return "col-resize";
+      case "crosshair":
+        return "crosshair";
+      case "magnifier":
+        return "none";
+      case "distance":
+      case "angle":
+      case "area":
+      case "ellipse":
+      case "arrow":
+      case "freehand":
+        return "crosshair";
+      case "text":
+        return "text";
+      default:
+        return "default";
     }
   };
 
-  // Current annotations for this image
-  const currentImageAnnotations = annotations.filter((a) => a.imageIndex === currentIndex);
+  const currentImageAnnotations = annotations.filter(
+    (a) => a.imageIndex === currentIndex
+  );
 
-  // Tool label mapping
-  const toolLabels: Record<Tool, string> = {
-    pointer: "Pointer",
-    pan: "Pan",
-    zoom: "Zoom",
-    windowLevel: "W/L",
-    crosshair: "Crosshair",
-    distance: "Distance",
-    angle: "Angle",
-    area: "Area",
-    arrow: "Arrow",
-    text: "Text",
-    freehand: "Draw",
-    ellipse: "Ellipse",
-  };
+  // ── Sub-components ─────────────────────────────────────────────────────────
 
-  const ToolButton = ({ tool, icon: Icon, label, shortcut }: { tool: Tool; icon: React.ElementType; label: string; shortcut?: string }) => (
+  const ToolBtn = ({
+    tool,
+    icon: Icon,
+    label,
+    shortcut,
+  }: {
+    tool: Tool;
+    icon: React.ElementType;
+    label: string;
+    shortcut?: string;
+  }) => (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button
-          variant={activeTool === tool ? "default" : "ghost"}
-          size="icon"
+        <button
           onClick={() => setActiveTool(tool)}
           className={cn(
-            "h-8 w-8 text-zinc-300 hover:text-white",
-            activeTool === tool && "bg-blue-600 hover:bg-blue-700 text-white"
+            "h-8 w-8 rounded-lg flex items-center justify-center transition-all duration-150",
+            activeTool === tool
+              ? "bg-blue-500/20 text-blue-400 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.3)]"
+              : "text-zinc-400 hover:text-white hover:bg-white/[0.08]"
           )}
         >
           <Icon className="h-4 w-4" />
-        </Button>
+        </button>
       </TooltipTrigger>
-      <TooltipContent side="bottom" className="bg-zinc-800 border-zinc-700">
-        <p className="text-xs">{label}{shortcut ? ` (${shortcut})` : ""}</p>
+      <TooltipContent
+        side="bottom"
+        className="bg-zinc-900/95 backdrop-blur border-zinc-700/50 px-2.5 py-1.5"
+      >
+        <p className="text-[11px] font-medium">
+          {label}
+          {shortcut && (
+            <kbd className="ml-2 text-[10px] text-zinc-500 bg-zinc-800 px-1 py-0.5 rounded font-mono">
+              {shortcut}
+            </kbd>
+          )}
+        </p>
       </TooltipContent>
     </Tooltip>
   );
 
-  const ActionButton = ({ icon: Icon, label, onClick, active, shortcut }: { icon: React.ElementType; label: string; onClick: () => void; active?: boolean; shortcut?: string }) => (
+  const ActionBtn = ({
+    icon: Icon,
+    label,
+    onClick,
+    active,
+    shortcut,
+    className: extraClass,
+  }: {
+    icon: React.ElementType;
+    label: string;
+    onClick: () => void;
+    active?: boolean;
+    shortcut?: string;
+    className?: string;
+  }) => (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button
-          variant={active ? "default" : "ghost"}
-          size="icon"
+        <button
           onClick={onClick}
           className={cn(
-            "h-8 w-8 text-zinc-300 hover:text-white",
-            active && "bg-blue-600 hover:bg-blue-700 text-white"
+            "h-8 w-8 rounded-lg flex items-center justify-center transition-all duration-150",
+            active
+              ? "bg-blue-500/20 text-blue-400 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.3)]"
+              : "text-zinc-400 hover:text-white hover:bg-white/[0.08]",
+            extraClass
           )}
         >
           <Icon className="h-4 w-4" />
-        </Button>
+        </button>
       </TooltipTrigger>
-      <TooltipContent side="bottom" className="bg-zinc-800 border-zinc-700">
-        <p className="text-xs">{label}{shortcut ? ` (${shortcut})` : ""}</p>
+      <TooltipContent
+        side="bottom"
+        className="bg-zinc-900/95 backdrop-blur border-zinc-700/50 px-2.5 py-1.5"
+      >
+        <p className="text-[11px] font-medium">
+          {label}
+          {shortcut && (
+            <kbd className="ml-2 text-[10px] text-zinc-500 bg-zinc-800 px-1 py-0.5 rounded font-mono">
+              {shortcut}
+            </kbd>
+          )}
+        </p>
       </TooltipContent>
     </Tooltip>
   );
 
-  // Render annotation
-  const renderAnnotation = (annotation: Annotation, isPreview: boolean = false) => {
+  const Divider = () => (
+    <div className="w-px h-5 bg-white/[0.06] mx-1" />
+  );
+
+  // ── Render annotations ─────────────────────────────────────────────────────
+
+  const renderAnnotation = (
+    annotation: Annotation,
+    isPreview: boolean = false
+  ) => {
     const strokeDash = isPreview ? `${4 / zoom}` : undefined;
     const sw = 1.5 / zoom;
-    const fontSize = 12 / zoom;
+    const fontSize = 11 / zoom;
 
     return (
       <g key={annotation.id}>
@@ -558,35 +726,61 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
         {annotation.type === "distance" && annotation.points.length >= 2 && (
           <>
             <line
-              x1={annotation.points[0].x} y1={annotation.points[0].y}
-              x2={annotation.points[1].x} y2={annotation.points[1].y}
-              stroke={annotation.color} strokeWidth={sw} strokeDasharray={strokeDash}
+              x1={annotation.points[0].x}
+              y1={annotation.points[0].y}
+              x2={annotation.points[1].x}
+              y2={annotation.points[1].y}
+              stroke={annotation.color}
+              strokeWidth={sw}
+              strokeDasharray={strokeDash}
             />
             {/* End caps */}
             <line
-              x1={annotation.points[0].x - 5 / zoom} y1={annotation.points[0].y}
-              x2={annotation.points[0].x + 5 / zoom} y2={annotation.points[0].y}
-              stroke={annotation.color} strokeWidth={sw}
-              transform={`rotate(${Math.atan2(annotation.points[1].y - annotation.points[0].y, annotation.points[1].x - annotation.points[0].x) * 180 / Math.PI + 90}, ${annotation.points[0].x}, ${annotation.points[0].y})`}
+              x1={annotation.points[0].x - 5 / zoom}
+              y1={annotation.points[0].y}
+              x2={annotation.points[0].x + 5 / zoom}
+              y2={annotation.points[0].y}
+              stroke={annotation.color}
+              strokeWidth={sw}
+              transform={`rotate(${(Math.atan2(annotation.points[1].y - annotation.points[0].y, annotation.points[1].x - annotation.points[0].x) * 180) / Math.PI + 90}, ${annotation.points[0].x}, ${annotation.points[0].y})`}
             />
             <line
-              x1={annotation.points[1].x - 5 / zoom} y1={annotation.points[1].y}
-              x2={annotation.points[1].x + 5 / zoom} y2={annotation.points[1].y}
-              stroke={annotation.color} strokeWidth={sw}
-              transform={`rotate(${Math.atan2(annotation.points[1].y - annotation.points[0].y, annotation.points[1].x - annotation.points[0].x) * 180 / Math.PI + 90}, ${annotation.points[1].x}, ${annotation.points[1].y})`}
+              x1={annotation.points[1].x - 5 / zoom}
+              y1={annotation.points[1].y}
+              x2={annotation.points[1].x + 5 / zoom}
+              y2={annotation.points[1].y}
+              stroke={annotation.color}
+              strokeWidth={sw}
+              transform={`rotate(${(Math.atan2(annotation.points[1].y - annotation.points[0].y, annotation.points[1].x - annotation.points[0].x) * 180) / Math.PI + 90}, ${annotation.points[1].x}, ${annotation.points[1].y})`}
             />
-            {/* Label */}
+            {/* Measurement label */}
             <rect
-              x={(annotation.points[0].x + annotation.points[1].x) / 2 - 25 / zoom}
-              y={(annotation.points[0].y + annotation.points[1].y) / 2 - 18 / zoom}
-              width={50 / zoom} height={16 / zoom} rx={3 / zoom}
-              fill="rgba(0,0,0,0.7)"
+              x={
+                (annotation.points[0].x + annotation.points[1].x) / 2 -
+                30 / zoom
+              }
+              y={
+                (annotation.points[0].y + annotation.points[1].y) / 2 -
+                18 / zoom
+              }
+              width={60 / zoom}
+              height={18 / zoom}
+              rx={4 / zoom}
+              fill="rgba(0,0,0,0.75)"
+              stroke={annotation.color}
+              strokeWidth={0.5 / zoom}
             />
             <text
               x={(annotation.points[0].x + annotation.points[1].x) / 2}
-              y={(annotation.points[0].y + annotation.points[1].y) / 2 - 7 / zoom}
-              fill={annotation.color} fontSize={fontSize} textAnchor="middle"
-              fontFamily="monospace"
+              y={
+                (annotation.points[0].y + annotation.points[1].y) / 2 -
+                6 / zoom
+              }
+              fill={annotation.color}
+              fontSize={fontSize}
+              textAnchor="middle"
+              fontFamily="ui-monospace, monospace"
+              fontWeight="500"
             >
               {calculateDistance(annotation.points[0], annotation.points[1])} mm
             </text>
@@ -599,15 +793,26 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
             <defs>
               <marker
                 id={`arrow-${annotation.id}`}
-                markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"
+                markerWidth="10"
+                markerHeight="7"
+                refX="9"
+                refY="3.5"
+                orient="auto"
               >
-                <polygon points="0 0, 10 3.5, 0 7" fill={annotation.color} />
+                <polygon
+                  points="0 0, 10 3.5, 0 7"
+                  fill={annotation.color}
+                />
               </marker>
             </defs>
             <line
-              x1={annotation.points[0].x} y1={annotation.points[0].y}
-              x2={annotation.points[1].x} y2={annotation.points[1].y}
-              stroke={annotation.color} strokeWidth={sw} strokeDasharray={strokeDash}
+              x1={annotation.points[0].x}
+              y1={annotation.points[0].y}
+              x2={annotation.points[1].x}
+              y2={annotation.points[1].y}
+              stroke={annotation.color}
+              strokeWidth={sw}
+              strokeDasharray={strokeDash}
               markerEnd={`url(#arrow-${annotation.id})`}
             />
           </>
@@ -615,52 +820,115 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
 
         {/* Ellipse */}
         {annotation.type === "ellipse" && annotation.points.length >= 2 && (
-          <>
-            <ellipse
-              cx={(annotation.points[0].x + annotation.points[1].x) / 2}
-              cy={(annotation.points[0].y + annotation.points[1].y) / 2}
-              rx={Math.abs(annotation.points[1].x - annotation.points[0].x) / 2}
-              ry={Math.abs(annotation.points[1].y - annotation.points[0].y) / 2}
-              stroke={annotation.color} strokeWidth={sw} fill="none"
-              strokeDasharray={strokeDash}
-            />
-          </>
+          <ellipse
+            cx={(annotation.points[0].x + annotation.points[1].x) / 2}
+            cy={(annotation.points[0].y + annotation.points[1].y) / 2}
+            rx={
+              Math.abs(annotation.points[1].x - annotation.points[0].x) / 2
+            }
+            ry={
+              Math.abs(annotation.points[1].y - annotation.points[0].y) / 2
+            }
+            stroke={annotation.color}
+            strokeWidth={sw}
+            fill="none"
+            strokeDasharray={strokeDash}
+          />
         )}
 
         {/* Freehand */}
         {annotation.type === "freehand" && annotation.points.length >= 2 && (
           <polyline
             points={annotation.points.map((p) => `${p.x},${p.y}`).join(" ")}
-            stroke={annotation.color} strokeWidth={sw} fill="none"
-            strokeLinecap="round" strokeLinejoin="round"
+            stroke={annotation.color}
+            strokeWidth={sw}
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
+        )}
+
+        {/* Text annotation */}
+        {annotation.type === "text" && annotation.text && (
+          <>
+            <rect
+              x={annotation.points[0].x}
+              y={annotation.points[0].y - 16 / zoom}
+              width={
+                (annotation.text.length * 7) / zoom + 12 / zoom
+              }
+              height={20 / zoom}
+              rx={4 / zoom}
+              fill="rgba(0,0,0,0.75)"
+              stroke={annotation.color}
+              strokeWidth={0.5 / zoom}
+            />
+            <text
+              x={annotation.points[0].x + 6 / zoom}
+              y={annotation.points[0].y - 3 / zoom}
+              fill={annotation.color}
+              fontSize={fontSize}
+              fontFamily="ui-sans-serif, system-ui, sans-serif"
+              fontWeight="500"
+            >
+              {annotation.text}
+            </text>
+          </>
         )}
       </g>
     );
   };
 
+  // ─── MAIN RENDER ───────────────────────────────────────────────────────────
+
   return (
-    <TooltipProvider delayDuration={300}>
+    <TooltipProvider delayDuration={200}>
       <div
         ref={containerRef}
         className={cn(
-          "flex flex-col bg-[#0a0a0a] select-none",
-          isFullscreen ? "fixed inset-0 z-50" : "h-[calc(100vh-8rem)] rounded-lg overflow-hidden border border-zinc-800"
+          "flex flex-col bg-[#08080c] select-none",
+          isFullscreen
+            ? "fixed inset-0 z-50"
+            : "h-[calc(100vh-8rem)] rounded-xl overflow-hidden border border-white/[0.06] shadow-2xl shadow-black/50"
         )}
       >
-        {/* Top Toolbar */}
-        <div className="flex items-center justify-between px-2 py-1.5 bg-[#111] border-b border-zinc-800/80 shrink-0">
-          {/* Left: Navigation & Manipulation tools */}
+        {/* ═══ TOP TOOLBAR ═══ */}
+        <div className="flex items-center justify-between px-2 py-1.5 bg-gradient-to-b from-white/[0.04] to-white/[0.02] backdrop-blur-xl border-b border-white/[0.06] shrink-0">
+          {/* Left: Navigation tools */}
           <div className="flex items-center gap-0.5">
-            <ToolButton tool="pan" icon={Move} label="Pan" shortcut="P" />
-            <ToolButton tool="zoom" icon={ZoomIn} label="Zoom" shortcut="Z" />
-            <ToolButton tool="windowLevel" icon={Contrast} label="Window/Level" shortcut="W" />
-            <ToolButton tool="crosshair" icon={Crosshair} label="Crosshair" shortcut="C" />
+            <ToolBtn tool="pan" icon={Move} label="Pan" shortcut="P" />
+            <ToolBtn tool="zoom" icon={ZoomIn} label="Zoom" shortcut="Z" />
+            <ToolBtn
+              tool="windowLevel"
+              icon={Contrast}
+              label="Window/Level"
+              shortcut="W"
+            />
+            <ToolBtn
+              tool="crosshair"
+              icon={Crosshair}
+              label="Crosshair"
+              shortcut="C"
+            />
+            <ToolBtn
+              tool="magnifier"
+              icon={Search}
+              label="Magnifier"
+              shortcut="M"
+            />
 
-            <div className="w-px h-5 bg-zinc-800 mx-1.5" />
+            <Divider />
 
-            <ActionButton icon={ZoomIn} label="Zoom In" onClick={() => setZoom((z) => Math.min(8, z * 1.25))} shortcut="↑" />
-            <ActionButton icon={ZoomOut} label="Zoom Out" onClick={() => setZoom((z) => Math.max(0.1, z / 1.25))} shortcut="↓" />
+            <ActionBtn
+              icon={ZoomIn}
+              label="Zoom In"
+              onClick={() => setZoom((z) => Math.min(10, z * 1.25))}
+            />
+            <ActionBtn
+              icon={ZoomOut}
+              label="Zoom Out"
+              onClick={() => setZoom((z) => Math.max(0.1, z / 1.25))}
+            />
 
             <span className="text-[10px] text-zinc-500 w-12 text-center font-mono tabular-nums">
               {Math.round(zoom * 100)}%
@@ -669,52 +937,93 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
 
           {/* Center: Measurement & Annotation tools */}
           <div className="flex items-center gap-0.5">
-            <ToolButton tool="distance" icon={Ruler} label="Distance" shortcut="D" />
-            <ToolButton tool="angle" icon={Circle} label="Angle" shortcut="A" />
-            <ToolButton tool="ellipse" icon={ScanLine} label="Ellipse ROI" />
-            <ToolButton tool="arrow" icon={ArrowUpRight} label="Arrow" />
-            <ToolButton tool="freehand" icon={Pencil} label="Freehand" />
+            <ToolBtn
+              tool="distance"
+              icon={Ruler}
+              label="Distance"
+              shortcut="D"
+            />
+            <ToolBtn tool="angle" icon={Circle} label="Angle" shortcut="A" />
+            <ToolBtn tool="ellipse" icon={ScanLine} label="Ellipse ROI" />
+            <ToolBtn tool="arrow" icon={ArrowUpRight} label="Arrow" />
+            <ToolBtn tool="text" icon={Type} label="Text" />
+            <ToolBtn tool="freehand" icon={Pencil} label="Freehand" />
 
-            <div className="w-px h-5 bg-zinc-800 mx-1.5" />
+            <Divider />
 
-            <ActionButton icon={Undo} label="Undo" onClick={undoAnnotation} shortcut="Del" />
-            <ActionButton icon={Trash2} label="Clear All" onClick={clearAnnotations} />
+            <ActionBtn
+              icon={Undo}
+              label="Undo"
+              onClick={undoAnnotation}
+              shortcut="Del"
+            />
+            <ActionBtn
+              icon={Trash2}
+              label="Clear All"
+              onClick={clearAnnotations}
+            />
 
             {currentImageAnnotations.length > 0 && (
-              <span className="text-[10px] text-zinc-500 ml-1 font-mono">
-                {currentImageAnnotations.length} ann.
+              <span className="text-[10px] text-zinc-500 ml-1 font-mono tabular-nums">
+                {currentImageAnnotations.length}
               </span>
             )}
           </div>
 
           {/* Right: View controls */}
           <div className="flex items-center gap-0.5">
-            <ActionButton icon={RotateCw} label="Rotate 90°" onClick={() => setRotation((r) => r + 90)} />
-            <ActionButton icon={FlipHorizontal} label="Flip H" onClick={() => setFlipH(!flipH)} active={flipH} />
-            <ActionButton icon={FlipVertical} label="Flip V" onClick={() => setFlipV(!flipV)} active={flipV} />
-            <ActionButton icon={Sun} label="Invert" onClick={() => setInvert(!invert)} active={invert} shortcut="I" />
+            <ActionBtn
+              icon={RotateCw}
+              label="Rotate 90deg"
+              onClick={() => setRotation((r) => r + 90)}
+            />
+            <ActionBtn
+              icon={FlipHorizontal}
+              label="Flip H"
+              onClick={() => setFlipH(!flipH)}
+              active={flipH}
+            />
+            <ActionBtn
+              icon={FlipVertical}
+              label="Flip V"
+              onClick={() => setFlipV(!flipV)}
+              active={flipV}
+            />
+            <ActionBtn
+              icon={Sun}
+              label="Invert"
+              onClick={() => setInvert(!invert)}
+              active={invert}
+              shortcut="I"
+            />
 
-            <div className="w-px h-5 bg-zinc-800 mx-1.5" />
+            <Divider />
 
-            {/* Window/Level Presets */}
+            {/* W/L Presets Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 gap-1 text-zinc-300 hover:text-white text-xs px-2">
+                <button className="h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-zinc-400 hover:text-white hover:bg-white/[0.08] transition-all text-[11px] font-medium">
                   <Contrast className="h-3.5 w-3.5" />
-                  W/L
-                </Button>
+                  <span className="hidden lg:inline">W/L</span>
+                </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-zinc-900 border-zinc-700">
-                <DropdownMenuLabel className="text-zinc-400 text-xs">Window/Level Presets</DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-zinc-700" />
+              <DropdownMenuContent className="bg-zinc-900/95 backdrop-blur-xl border-zinc-700/50 shadow-2xl">
+                <DropdownMenuLabel className="text-zinc-500 text-[11px]">
+                  Window/Level Presets
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-zinc-700/50" />
                 {Object.entries(WINDOW_PRESETS).map(([key, preset]) => (
                   <DropdownMenuItem
                     key={key}
-                    onClick={() => applyPreset(key as keyof typeof WINDOW_PRESETS)}
-                    className="text-zinc-200 hover:bg-zinc-800 text-xs justify-between"
+                    onClick={() =>
+                      applyPreset(key as keyof typeof WINDOW_PRESETS)
+                    }
+                    className="text-zinc-200 hover:bg-white/10 text-xs justify-between cursor-pointer"
                   >
                     {preset.name}
-                    <span className="text-zinc-500 ml-4">{preset.shortcut}</span>
+                    <kbd className="text-zinc-600 text-[10px] font-mono bg-zinc-800 px-1 py-0.5 rounded">
+                      {preset.shortcut}
+                    </kbd>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
@@ -723,86 +1032,160 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
             {/* Layout Grid */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-300 hover:text-white">
+                <button className="h-8 w-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/[0.08] transition-all">
                   <Grid3X3 className="h-4 w-4" />
-                </Button>
+                </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-zinc-900 border-zinc-700">
-                <DropdownMenuLabel className="text-zinc-400 text-xs">Layout</DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-zinc-700" />
-                <DropdownMenuItem onClick={() => setGridLayout("1x1")} className="text-zinc-200 hover:bg-zinc-800 text-xs">1 x 1</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setGridLayout("1x2")} className="text-zinc-200 hover:bg-zinc-800 text-xs">1 x 2</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setGridLayout("2x2")} className="text-zinc-200 hover:bg-zinc-800 text-xs">2 x 2</DropdownMenuItem>
+              <DropdownMenuContent className="bg-zinc-900/95 backdrop-blur-xl border-zinc-700/50 shadow-2xl">
+                <DropdownMenuLabel className="text-zinc-500 text-[11px]">
+                  Layout
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-zinc-700/50" />
+                {(["1x1", "1x2", "2x2"] as const).map((layout) => (
+                  <DropdownMenuItem
+                    key={layout}
+                    onClick={() => setGridLayout(layout)}
+                    className={cn(
+                      "text-xs cursor-pointer",
+                      gridLayout === layout
+                        ? "text-blue-400 bg-blue-500/10"
+                        : "text-zinc-200 hover:bg-white/10"
+                    )}
+                  >
+                    {layout.replace("x", " x ")}
+                  </DropdownMenuItem>
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <ActionButton icon={Info} label="Toggle Info" onClick={() => setShowInfo(!showInfo)} active={showInfo} />
-            <ActionButton icon={RefreshCw} label="Reset" onClick={resetView} shortcut="R" />
-            <ActionButton icon={isFullscreen ? Minimize : Maximize} label="Fullscreen" onClick={toggleFullscreen} shortcut="F" />
+            <ActionBtn
+              icon={Info}
+              label="Toggle Info"
+              onClick={() => setShowInfo(!showInfo)}
+              active={showInfo}
+            />
+            <ActionBtn
+              icon={RefreshCw}
+              label="Reset"
+              onClick={resetView}
+              shortcut="R"
+            />
+            <ActionBtn
+              icon={isFullscreen ? Minimize : Maximize}
+              label="Fullscreen"
+              onClick={toggleFullscreen}
+              shortcut="F"
+            />
 
-            {/* Keyboard shortcut help */}
+            <Divider />
+
+            {/* AI Analysis Toggle */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setShowAiPanel(!showAiPanel)}
+                  className={cn(
+                    "h-8 px-2.5 rounded-lg flex items-center gap-1.5 transition-all duration-150 text-[11px] font-medium",
+                    showAiPanel
+                      ? "bg-gradient-to-r from-violet-500/20 to-blue-500/20 text-violet-400 shadow-[inset_0_0_0_1px_rgba(139,92,246,0.3)]"
+                      : "text-zinc-400 hover:text-violet-400 hover:bg-violet-500/10"
+                  )}
+                >
+                  <Brain className="h-4 w-4" />
+                  <span className="hidden lg:inline">AI</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="bottom"
+                className="bg-zinc-900/95 backdrop-blur border-zinc-700/50"
+              >
+                <p className="text-[11px] font-medium">AI Analysis</p>
+              </TooltipContent>
+            </Tooltip>
+
+            {/* Keyboard Shortcuts */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-300 hover:text-white">
-                  <Settings className="h-3.5 w-3.5" />
-                </Button>
+                <button className="h-8 w-8 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06] transition-all">
+                  <Keyboard className="h-3.5 w-3.5" />
+                </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-zinc-900 border-zinc-700 w-56">
-                <DropdownMenuLabel className="text-zinc-400 text-xs">Keyboard Shortcuts</DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-zinc-700" />
-                {[
-                  ["P", "Pan tool"],
-                  ["Z", "Zoom tool"],
-                  ["W", "Window/Level"],
-                  ["C", "Crosshair"],
-                  ["D", "Distance"],
-                  ["A", "Angle"],
-                  ["I", "Invert colors"],
-                  ["R", "Reset view"],
-                  ["F", "Fullscreen"],
-                  ["Space", "Play/Pause"],
-                  ["← →", "Prev/Next image"],
-                  ["↑ ↓", "Zoom in/out"],
-                  ["Scroll", "Navigate slices"],
-                  ["Ctrl+Scroll", "Zoom"],
-                  ["1-9", "W/L presets"],
-                  ["Del", "Undo annotation"],
-                ].map(([key, desc]) => (
-                  <div key={key} className="flex items-center justify-between px-2 py-1 text-xs">
-                    <span className="text-zinc-400">{desc}</span>
-                    <kbd className="bg-zinc-800 text-zinc-300 px-1.5 py-0.5 rounded text-[10px] font-mono">{key}</kbd>
-                  </div>
-                ))}
+              <DropdownMenuContent
+                className="bg-zinc-900/95 backdrop-blur-xl border-zinc-700/50 shadow-2xl w-64"
+                align="end"
+              >
+                <DropdownMenuLabel className="text-zinc-500 text-[11px]">
+                  Keyboard Shortcuts
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-zinc-700/50" />
+                <div className="px-1 py-1 space-y-0.5">
+                  {[
+                    ["P", "Pan tool"],
+                    ["Z", "Zoom tool"],
+                    ["W", "Window/Level"],
+                    ["C", "Crosshair"],
+                    ["M", "Magnifier"],
+                    ["D", "Distance"],
+                    ["A", "Angle"],
+                    ["I", "Invert colors"],
+                    ["R", "Reset view"],
+                    ["F", "Fullscreen"],
+                    ["Space", "Play/Pause cine"],
+                    ["Arrows", "Navigate / Zoom"],
+                    ["Scroll", "Navigate slices"],
+                    ["Ctrl+Scroll", "Zoom"],
+                    ["1-9", "W/L presets"],
+                    ["Del", "Undo annotation"],
+                    ["Esc", "Reset tool"],
+                  ].map(([key, desc]) => (
+                    <div
+                      key={key}
+                      className="flex items-center justify-between px-2 py-1 rounded-md"
+                    >
+                      <span className="text-[11px] text-zinc-400">{desc}</span>
+                      <kbd className="bg-zinc-800/80 text-zinc-300 px-1.5 py-0.5 rounded text-[10px] font-mono min-w-[24px] text-center">
+                        {key}
+                      </kbd>
+                    </div>
+                  ))}
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
 
-        {/* Main Content Area */}
+        {/* ═══ MAIN CONTENT ═══ */}
         <div className="flex flex-1 min-h-0">
-          {/* Thumbnail Strip (left side) */}
+          {/* ── Thumbnail Strip ── */}
           {showThumbnails && images.length > 1 && (
-            <div className="w-20 bg-[#0d0d0d] border-r border-zinc-800/80 overflow-y-auto shrink-0">
-              <div className="p-1 space-y-1">
+            <div className="w-[88px] bg-[#0a0a0f] border-r border-white/[0.04] overflow-y-auto shrink-0 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+              <div className="p-1.5 space-y-1.5">
                 {images.map((img, idx) => (
                   <button
                     key={idx}
                     onClick={() => setCurrentIndex(idx)}
                     className={cn(
-                      "w-full aspect-square rounded overflow-hidden border-2 transition-all",
+                      "w-full aspect-square rounded-lg overflow-hidden relative group transition-all duration-200",
                       currentIndex === idx
-                        ? "border-blue-500 shadow-lg shadow-blue-500/20"
-                        : "border-transparent hover:border-zinc-600 opacity-60 hover:opacity-100"
+                        ? "ring-2 ring-blue-500 ring-offset-1 ring-offset-[#0a0a0f] shadow-lg shadow-blue-500/20"
+                        : "opacity-50 hover:opacity-90 hover:ring-1 hover:ring-white/20"
                     )}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={img}
-                      alt={`Thumbnail ${idx + 1}`}
+                      alt={`Slice ${idx + 1}`}
                       className="w-full h-full object-cover"
                       loading="lazy"
                     />
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[9px] text-zinc-400 text-center py-0.5 font-mono">
+                    <div
+                      className={cn(
+                        "absolute inset-x-0 bottom-0 py-0.5 text-center text-[9px] font-mono",
+                        currentIndex === idx
+                          ? "bg-blue-500/80 text-white"
+                          : "bg-black/60 text-zinc-400"
+                      )}
+                    >
                       {idx + 1}
                     </div>
                   </button>
@@ -811,11 +1194,11 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
             </div>
           )}
 
-          {/* Viewer Area */}
+          {/* ── Viewport Area ── */}
           <div className="flex-1 relative overflow-hidden">
             <div
               className={cn(
-                "h-full w-full grid gap-px",
+                "h-full w-full grid gap-px bg-zinc-900/50",
                 gridLayout === "1x1" && "grid-cols-1",
                 gridLayout === "1x2" && "grid-cols-2",
                 gridLayout === "2x2" && "grid-cols-2 grid-rows-2"
@@ -825,17 +1208,22 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
               <div
                 ref={viewportRef}
                 className="relative bg-black overflow-hidden"
-                style={{ cursor: isDragging.current && activeTool === "pan" ? "grabbing" : getCursor() }}
+                style={{
+                  cursor:
+                    isDragging.current && activeTool === "pan"
+                      ? "grabbing"
+                      : getCursor(),
+                }}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
-                onMouseLeave={(e) => {
+                onMouseLeave={() => {
                   handleMouseUp();
                   setCursorPos(null);
                 }}
                 onWheel={handleWheel}
               >
-                {/* The Image */}
+                {/* Image */}
                 {images.length > 0 && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -854,50 +1242,189 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
                 {activeTool === "crosshair" && cursorPos && (
                   <>
                     <div
-                      className="absolute top-0 bottom-0 w-px bg-yellow-500/60 pointer-events-none"
-                      style={{ left: cursorPos.x }}
+                      className="absolute top-0 bottom-0 w-px pointer-events-none"
+                      style={{
+                        left: cursorPos.x,
+                        background:
+                          "linear-gradient(to bottom, transparent 0%, rgba(34,211,238,0.6) 30%, rgba(34,211,238,0.6) 70%, transparent 100%)",
+                      }}
                     />
                     <div
-                      className="absolute left-0 right-0 h-px bg-yellow-500/60 pointer-events-none"
-                      style={{ top: cursorPos.y }}
+                      className="absolute left-0 right-0 h-px pointer-events-none"
+                      style={{
+                        top: cursorPos.y,
+                        background:
+                          "linear-gradient(to right, transparent 0%, rgba(34,211,238,0.6) 30%, rgba(34,211,238,0.6) 70%, transparent 100%)",
+                      }}
+                    />
+                    {/* Crosshair center dot */}
+                    <div
+                      className="absolute w-1.5 h-1.5 rounded-full bg-cyan-400 pointer-events-none"
+                      style={{
+                        left: cursorPos.x - 3,
+                        top: cursorPos.y - 3,
+                      }}
                     />
                   </>
                 )}
 
+                {/* Magnifier Lens Overlay */}
+                {activeTool === "magnifier" && cursorPos && (
+                  <div
+                    className="absolute pointer-events-none rounded-full overflow-hidden shadow-2xl"
+                    style={{
+                      width: MAGNIFIER_SIZE,
+                      height: MAGNIFIER_SIZE,
+                      left: cursorPos.x - MAGNIFIER_SIZE / 2,
+                      top: cursorPos.y - MAGNIFIER_SIZE / 2,
+                      border: "2px solid rgba(255,255,255,0.15)",
+                      boxShadow:
+                        "0 0 0 1px rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.6), inset 0 0 20px rgba(255,255,255,0.02)",
+                    }}
+                  >
+                    {/* Magnified image */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={images[currentIndex]}
+                      alt=""
+                      className="absolute select-none"
+                      style={{
+                        width:
+                          (viewportRef.current?.offsetWidth || 800) *
+                          MAGNIFIER_ZOOM,
+                        height:
+                          (viewportRef.current?.offsetHeight || 600) *
+                          MAGNIFIER_ZOOM,
+                        left: -(
+                          cursorPos.x * MAGNIFIER_ZOOM -
+                          MAGNIFIER_SIZE / 2
+                        ),
+                        top: -(
+                          cursorPos.y * MAGNIFIER_ZOOM -
+                          MAGNIFIER_SIZE / 2
+                        ),
+                        filter: `brightness(${brightness}%) contrast(${contrast}%) ${invert ? "invert(1)" : ""}`,
+                        objectFit: "contain",
+                        objectPosition: "center",
+                      }}
+                      draggable={false}
+                    />
+                    {/* Magnifier crosshair */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="w-px h-full bg-white/20" />
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="h-px w-full bg-white/20" />
+                    </div>
+                    {/* Magnification label */}
+                    <div className="absolute bottom-1 left-1/2 -translate-x-1/2 bg-black/70 text-white/60 text-[9px] font-mono px-1.5 py-0.5 rounded">
+                      {MAGNIFIER_ZOOM}x
+                    </div>
+                  </div>
+                )}
+
+                {/* Text Input Overlay */}
+                {textInputPos && (
+                  <div
+                    className="absolute z-20"
+                    style={{
+                      left: textInputPos.x * zoom + pan.x,
+                      top: textInputPos.y * zoom + pan.y - 32,
+                    }}
+                  >
+                    <input
+                      ref={textInputRef}
+                      type="text"
+                      value={textInputValue}
+                      onChange={(e) => setTextInputValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleTextSubmit();
+                        }
+                        if (e.key === "Escape") {
+                          setTextInputPos(null);
+                          setTextInputValue("");
+                        }
+                      }}
+                      onBlur={handleTextSubmit}
+                      placeholder="Type annotation..."
+                      className="bg-black/80 border border-cyan-500/50 text-cyan-300 text-xs px-2 py-1 rounded-md outline-none focus:border-cyan-400 font-sans min-w-[120px] placeholder:text-zinc-600"
+                    />
+                  </div>
+                )}
+
                 {/* Annotations SVG Overlay */}
                 <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                  <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-                    {currentImageAnnotations.map((annotation) => renderAnnotation(annotation))}
-                    {currentAnnotation && renderAnnotation(currentAnnotation, true)}
+                  <g
+                    transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}
+                  >
+                    {currentImageAnnotations.map((annotation) =>
+                      renderAnnotation(annotation)
+                    )}
+                    {currentAnnotation &&
+                      renderAnnotation(currentAnnotation, true)}
                   </g>
                 </svg>
 
-                {/* Info Overlay - Top Left (Patient/Study info) */}
+                {/* ── HUD Overlays ── */}
+
+                {/* Top-Left: Patient & Study Info */}
                 {showInfo && studyInfo && (
-                  <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm rounded-sm px-2.5 py-1.5 text-[11px] text-green-400 font-mono space-y-0.5 pointer-events-none">
-                    {studyInfo.patientName && <div>{studyInfo.patientName}</div>}
-                    {studyInfo.studyDate && <div>{studyInfo.studyDate}</div>}
-                    {studyInfo.modality && <div>{studyInfo.modality}</div>}
-                    {studyInfo.seriesDescription && <div>{studyInfo.seriesDescription}</div>}
+                  <div className="absolute top-3 left-3 pointer-events-none">
+                    <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2 space-y-0.5">
+                      {studyInfo.patientName && (
+                        <div className="text-[11px] text-emerald-400/90 font-mono font-medium">
+                          {studyInfo.patientName}
+                        </div>
+                      )}
+                      {studyInfo.studyDate && (
+                        <div className="text-[11px] text-emerald-400/70 font-mono">
+                          {studyInfo.studyDate}
+                        </div>
+                      )}
+                      {studyInfo.modality && (
+                        <div className="text-[11px] text-emerald-400/70 font-mono">
+                          {studyInfo.modality}
+                        </div>
+                      )}
+                      {studyInfo.seriesDescription && (
+                        <div className="text-[11px] text-emerald-400/60 font-mono">
+                          {studyInfo.seriesDescription}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
-                {/* Info Overlay - Top Right (Technical info) */}
+                {/* Top-Right: Technical Info */}
                 {showInfo && (
-                  <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm rounded-sm px-2.5 py-1.5 text-[11px] text-green-400 font-mono space-y-0.5 text-right pointer-events-none">
-                    <div>W: {windowWidth} L: {windowCenter}</div>
-                    <div>Zoom: {Math.round(zoom * 100)}%</div>
-                    {rotation !== 0 && <div>Rot: {rotation}°</div>}
+                  <div className="absolute top-3 right-3 pointer-events-none">
+                    <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2 space-y-0.5 text-right">
+                      <div className="text-[11px] text-emerald-400/80 font-mono">
+                        W:{windowWidth} L:{windowCenter}
+                      </div>
+                      <div className="text-[11px] text-emerald-400/70 font-mono">
+                        Zoom: {Math.round(zoom * 100)}%
+                      </div>
+                      {rotation !== 0 && (
+                        <div className="text-[11px] text-emerald-400/60 font-mono">
+                          Rot: {rotation}deg
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
-                {/* Info Overlay - Bottom Left (Tool indicator) */}
-                <div className="absolute bottom-2 left-2 flex items-center gap-2 pointer-events-none">
-                  <div className="bg-blue-600/80 backdrop-blur-sm rounded-sm px-2 py-0.5 text-[10px] text-white font-medium uppercase tracking-wider">
-                    {toolLabels[activeTool]}
+                {/* Bottom-Left: Active Tool Indicator */}
+                <div className="absolute bottom-3 left-3 flex items-center gap-2 pointer-events-none">
+                  <div className="bg-blue-500/80 backdrop-blur-sm rounded-md px-2.5 py-1 text-[10px] text-white font-semibold uppercase tracking-widest">
+                    {activeTool === "windowLevel"
+                      ? "W/L"
+                      : activeTool.replace(/([A-Z])/g, " $1").trim()}
                   </div>
                   {(flipH || flipV || invert) && (
-                    <div className="bg-amber-600/80 backdrop-blur-sm rounded-sm px-2 py-0.5 text-[10px] text-white font-mono">
+                    <div className="bg-amber-500/70 backdrop-blur-sm rounded-md px-2 py-1 text-[10px] text-white font-mono">
                       {flipH && "H "}
                       {flipV && "V "}
                       {invert && "INV"}
@@ -905,19 +1432,25 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
                   )}
                 </div>
 
-                {/* Info Overlay - Bottom Right (Image counter) */}
-                {showInfo && (
-                  <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm rounded-sm px-2.5 py-1 text-[11px] text-green-400 font-mono pointer-events-none">
-                    Im: {currentIndex + 1} / {images.length}
+                {/* Bottom-Right: Image Counter */}
+                {showInfo && images.length > 0 && (
+                  <div className="absolute bottom-3 right-3 pointer-events-none">
+                    <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1.5 text-[11px] text-emerald-400/80 font-mono">
+                      {currentIndex + 1} / {images.length}
+                    </div>
                   </div>
                 )}
 
-                {/* No images placeholder */}
+                {/* Empty State */}
                 {images.length === 0 && (
-                  <div className="absolute inset-0 flex items-center justify-center text-zinc-600">
+                  <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center">
-                      <ScanLine className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                      <p className="text-lg font-medium">No images to display</p>
+                      <div className="w-20 h-20 rounded-2xl bg-zinc-900 flex items-center justify-center mx-auto mb-4">
+                        <ScanLine className="h-10 w-10 text-zinc-700" />
+                      </div>
+                      <p className="text-sm font-medium text-zinc-600">
+                        No images to display
+                      </p>
                     </div>
                   </div>
                 )}
@@ -925,93 +1458,104 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
 
               {/* Additional viewports for grid layouts */}
               {gridLayout !== "1x1" && (
-                <div className="bg-zinc-950 flex items-center justify-center text-zinc-700 text-xs border border-zinc-800/50">
+                <div className="bg-zinc-950 flex items-center justify-center text-zinc-800 text-xs border border-zinc-800/30">
                   <div className="text-center">
                     <Grid3X3 className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                    <p>Viewport 2</p>
+                    <p className="text-[11px]">Viewport 2</p>
                   </div>
                 </div>
               )}
               {gridLayout === "2x2" && (
                 <>
-                  <div className="bg-zinc-950 flex items-center justify-center text-zinc-700 text-xs border border-zinc-800/50">
+                  <div className="bg-zinc-950 flex items-center justify-center text-zinc-800 text-xs border border-zinc-800/30">
                     <div className="text-center">
                       <Grid3X3 className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                      <p>Viewport 3</p>
+                      <p className="text-[11px]">Viewport 3</p>
                     </div>
                   </div>
-                  <div className="bg-zinc-950 flex items-center justify-center text-zinc-700 text-xs border border-zinc-800/50">
+                  <div className="bg-zinc-950 flex items-center justify-center text-zinc-800 text-xs border border-zinc-800/30">
                     <div className="text-center">
                       <Grid3X3 className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                      <p>Viewport 4</p>
+                      <p className="text-[11px]">Viewport 4</p>
                     </div>
                   </div>
                 </>
               )}
             </div>
           </div>
-        </div>
 
-        {/* Bottom Toolbar - Cine Player */}
-        <div className="flex items-center justify-center gap-3 px-3 py-1.5 bg-[#111] border-t border-zinc-800/80 shrink-0">
-          {/* Thumbnail toggle */}
-          {images.length > 1 && (
-            <ActionButton
-              icon={ScanLine}
-              label="Toggle Thumbnails"
-              onClick={() => setShowThumbnails(!showThumbnails)}
-              active={showThumbnails}
-              shortcut="T"
+          {/* ── AI Analysis Panel ── */}
+          {showAiPanel && images.length > 0 && (
+            <AiAnalysisPanel
+              imageUrl={images[currentIndex]}
+              onClose={() => setShowAiPanel(false)}
             />
           )}
+        </div>
 
-          <div className="w-px h-5 bg-zinc-800 mx-1" />
+        {/* ═══ BOTTOM TOOLBAR - Cine Player ═══ */}
+        <div className="flex items-center justify-center gap-3 px-3 py-1.5 bg-gradient-to-t from-white/[0.03] to-white/[0.015] backdrop-blur-xl border-t border-white/[0.06] shrink-0">
+          {/* Thumbnail toggle */}
+          {images.length > 1 && (
+            <>
+              <ActionBtn
+                icon={ScanLine}
+                label="Toggle Thumbnails"
+                onClick={() => setShowThumbnails(!showThumbnails)}
+                active={showThumbnails}
+                shortcut="T"
+              />
+              <Divider />
+            </>
+          )}
 
           {/* Playback controls */}
           <div className="flex items-center gap-0.5">
-            <Button
-              variant="ghost" size="icon"
+            <button
               onClick={() => setCurrentIndex(0)}
               disabled={currentIndex === 0}
-              className="h-7 w-7 text-zinc-400 hover:text-white disabled:opacity-30"
+              className="h-7 w-7 rounded-md flex items-center justify-center text-zinc-500 hover:text-white disabled:opacity-20 disabled:hover:text-zinc-500 transition-colors"
             >
               <SkipBack className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost" size="icon"
+            </button>
+            <button
               onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
               disabled={currentIndex === 0}
-              className="h-7 w-7 text-zinc-400 hover:text-white disabled:opacity-30"
+              className="h-7 w-7 rounded-md flex items-center justify-center text-zinc-500 hover:text-white disabled:opacity-20 disabled:hover:text-zinc-500 transition-colors"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant={isPlaying ? "default" : "ghost"}
-              size="icon"
+            </button>
+            <button
               onClick={() => setIsPlaying(!isPlaying)}
               className={cn(
-                "h-7 w-7",
-                isPlaying ? "bg-blue-600 hover:bg-blue-700 text-white" : "text-zinc-400 hover:text-white"
+                "h-7 w-7 rounded-md flex items-center justify-center transition-all",
+                isPlaying
+                  ? "bg-blue-500/20 text-blue-400 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.3)]"
+                  : "text-zinc-500 hover:text-white"
               )}
             >
-              {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-            </Button>
-            <Button
-              variant="ghost" size="icon"
-              onClick={() => setCurrentIndex((i) => Math.min(images.length - 1, i + 1))}
+              {isPlaying ? (
+                <Pause className="h-3.5 w-3.5" />
+              ) : (
+                <Play className="h-3.5 w-3.5" />
+              )}
+            </button>
+            <button
+              onClick={() =>
+                setCurrentIndex((i) => Math.min(images.length - 1, i + 1))
+              }
               disabled={currentIndex === images.length - 1}
-              className="h-7 w-7 text-zinc-400 hover:text-white disabled:opacity-30"
+              className="h-7 w-7 rounded-md flex items-center justify-center text-zinc-500 hover:text-white disabled:opacity-20 disabled:hover:text-zinc-500 transition-colors"
             >
               <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost" size="icon"
+            </button>
+            <button
               onClick={() => setCurrentIndex(images.length - 1)}
               disabled={currentIndex === images.length - 1}
-              className="h-7 w-7 text-zinc-400 hover:text-white disabled:opacity-30"
+              className="h-7 w-7 rounded-md flex items-center justify-center text-zinc-500 hover:text-white disabled:opacity-20 disabled:hover:text-zinc-500 transition-colors"
             >
               <SkipForward className="h-3.5 w-3.5" />
-            </Button>
+            </button>
           </div>
 
           {/* Image Slider */}
@@ -1031,11 +1575,11 @@ export function MedicalViewer({ images, studyInfo, onClose }: MedicalViewerProps
 
           {/* Playback Speed */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] text-zinc-500 font-mono">FPS:</span>
+            <span className="text-[10px] text-zinc-600 font-mono">FPS</span>
             <select
               value={playSpeed}
               onChange={(e) => setPlaySpeed(Number(e.target.value))}
-              className="bg-zinc-900 text-zinc-300 text-[10px] rounded px-1.5 py-0.5 border border-zinc-700 font-mono"
+              className="bg-zinc-900/80 text-zinc-400 text-[10px] rounded-md px-1.5 py-1 border border-white/[0.06] font-mono appearance-none cursor-pointer hover:border-white/10 transition-colors"
             >
               <option value={1000}>1</option>
               <option value={500}>2</option>

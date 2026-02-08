@@ -63,7 +63,7 @@ export default async function ProvidersPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-bold">My Providers</h2>
+        <h2 className="text-2xl font-bold tracking-tight">My Providers</h2>
         <p className="text-muted-foreground">
           Healthcare providers you&apos;re connected with
         </p>

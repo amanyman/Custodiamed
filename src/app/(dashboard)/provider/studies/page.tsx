@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, User, Calendar, Eye, Clock } from "lucide-react";
 import Link from "next/link";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default async function SharedStudiesPage() {
   const supabase = await createClient();
@@ -84,27 +85,20 @@ export default async function SharedStudiesPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-bold">Shared Studies</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Shared Studies</h2>
         <p className="text-muted-foreground mt-1">
           Medical imaging studies shared with you by patients
         </p>
       </div>
 
       {studies.length === 0 ? (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-              <FileText className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">No Studies Yet</h3>
-            <p className="text-muted-foreground mb-4">
-              When patients share their medical imaging with you, it will appear here.
-            </p>
-            <Link href="/provider/invite">
-              <Button>Invite a Patient</Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={FileText}
+          title="No Studies Yet"
+          description="When patients share their medical imaging with you, it will appear here."
+          actionLabel="Invite a Patient"
+          actionHref="/provider/invite"
+        />
       ) : (
         <div className="grid gap-4">
           {studies.map((study) => (

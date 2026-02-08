@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +21,11 @@ import {
   RotateCcw,
   Maximize,
   Grid3X3,
+  Menu,
+  X,
+  ShieldCheck,
+  Timer,
+  MonitorSmartphone,
 } from "lucide-react";
 
 // Logo component
@@ -31,7 +37,22 @@ function Logo({ className = "" }: { className?: string }) {
   );
 }
 
+// Static color lookup for DICOM feature cards (Tailwind can't parse dynamic classes)
+const featureColorMap: Record<string, { bg: string; border: string; text: string }> = {
+  blue: { bg: "bg-blue-500/10", border: "border-blue-500/20", text: "text-blue-400" },
+  cyan: { bg: "bg-cyan-500/10", border: "border-cyan-500/20", text: "text-cyan-400" },
+  purple: { bg: "bg-purple-500/10", border: "border-purple-500/20", text: "text-purple-400" },
+  pink: { bg: "bg-pink-500/10", border: "border-pink-500/20", text: "text-pink-400" },
+  indigo: { bg: "bg-indigo-500/10", border: "border-indigo-500/20", text: "text-indigo-400" },
+  green: { bg: "bg-green-500/10", border: "border-green-500/20", text: "text-green-400" },
+  orange: { bg: "bg-orange-500/10", border: "border-orange-500/20", text: "text-orange-400" },
+  rose: { bg: "bg-rose-500/10", border: "border-rose-500/20", text: "text-rose-400" },
+  teal: { bg: "bg-teal-500/10", border: "border-teal-500/20", text: "text-teal-400" },
+};
+
 export default function LandingPage() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background overflow-hidden">
       {/* Decorative background elements */}
@@ -69,7 +90,7 @@ export default function LandingPage() {
                 Security
               </Link>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="hidden items-center gap-3 md:flex">
               <Link href="/login">
                 <Button variant="ghost" size="sm" className="font-medium">
                   Log in
@@ -81,7 +102,60 @@ export default function LandingPage() {
                 </Button>
               </Link>
             </div>
+
+            {/* Mobile menu button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
+            </Button>
           </div>
+
+          {/* Mobile dropdown menu */}
+          {mobileMenuOpen && (
+            <div className="md:hidden mt-4 pb-4 border-t border-border/50 pt-4 space-y-3 animate-fade-in-up">
+              <Link
+                href="#how-it-works"
+                className="block text-sm text-muted-foreground hover:text-foreground py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                How It Works
+              </Link>
+              <Link
+                href="#viewer"
+                className="block text-sm text-muted-foreground hover:text-foreground py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Image Viewer
+              </Link>
+              <Link
+                href="#security"
+                className="block text-sm text-muted-foreground hover:text-foreground py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Security
+              </Link>
+              <div className="flex flex-col gap-2 pt-2">
+                <Link href="/login">
+                  <Button variant="outline" className="w-full font-medium">
+                    Log in
+                  </Button>
+                </Link>
+                <Link href="/signup">
+                  <Button className="w-full font-medium">
+                    Get Started
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 
@@ -120,8 +194,8 @@ export default function LandingPage() {
                 <span>256-bit Encryption</span>
               </div>
               <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-primary" />
-                <span>Secure & Private</span>
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                <span>HIPAA Compliant</span>
               </div>
               <div className="flex items-center gap-2">
                 <Eye className="h-4 w-4 text-primary" />
@@ -283,6 +357,42 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Trust Stats / Social Proof Section */}
+      <section className="relative py-16 md:py-20 border-y bg-muted/30">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
+            <div className="text-center">
+              <div className="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                <Lock className="h-6 w-6 text-primary" />
+              </div>
+              <p className="text-lg font-bold">256-bit AES</p>
+              <p className="text-sm text-muted-foreground">Encryption</p>
+            </div>
+            <div className="text-center">
+              <div className="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                <ShieldCheck className="h-6 w-6 text-primary" />
+              </div>
+              <p className="text-lg font-bold">HIPAA</p>
+              <p className="text-sm text-muted-foreground">Compliant</p>
+            </div>
+            <div className="text-center">
+              <div className="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                <Timer className="h-6 w-6 text-primary" />
+              </div>
+              <p className="text-lg font-bold">7-Day</p>
+              <p className="text-sm text-muted-foreground">Auto-Expiring Links</p>
+            </div>
+            <div className="text-center">
+              <div className="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                <MonitorSmartphone className="h-6 w-6 text-primary" />
+              </div>
+              <p className="text-lg font-bold">Zero</p>
+              <p className="text-sm text-muted-foreground">Software to Install</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Medical Image Viewer Section - For Doctors */}
       <section id="viewer" className="relative py-24 md:py-32 bg-gradient-to-b from-slate-900 to-slate-800 text-white overflow-hidden">
         {/* Background effects */}
@@ -308,72 +418,30 @@ export default function LandingPage() {
           {/* Features Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {[
-              {
-                icon: ZoomIn,
-                title: "Zoom & Pan",
-                desc: "Smoothly navigate high-resolution DICOM images with intuitive scroll zoom and click-drag panning.",
-                color: "blue",
-              },
-              {
-                icon: Ruler,
-                title: "Measurement Tools",
-                desc: "Measure distances, angles, and areas with precision. Results displayed in mm, cm, or pixels.",
-                color: "cyan",
-              },
-              {
-                icon: Contrast,
-                title: "Window/Level Adjustment",
-                desc: "Fine-tune brightness and contrast to highlight different tissue densities and structures.",
-                color: "purple",
-              },
-              {
-                icon: Layers,
-                title: "Multi-planar Reconstruction",
-                desc: "View axial, sagittal, and coronal planes. Scroll through slices seamlessly.",
-                color: "pink",
-              },
-              {
-                icon: Grid3X3,
-                title: "Multi-image Layout",
-                desc: "Compare multiple series or timepoints side-by-side with customizable grid layouts.",
-                color: "indigo",
-              },
-              {
-                icon: RotateCcw,
-                title: "Image Manipulation",
-                desc: "Rotate, flip, and invert images. Reset to original with one click.",
-                color: "green",
-              },
-              {
-                icon: Maximize,
-                title: "Fullscreen Mode",
-                desc: "Expand to fullscreen for detailed analysis. Works on any monitor or display.",
-                color: "orange",
-              },
-              {
-                icon: Eye,
-                title: "Annotation Tools",
-                desc: "Add arrows, text labels, and region markers. Save annotations for future reference.",
-                color: "rose",
-              },
-              {
-                icon: Share2,
-                title: "Easy Sharing",
-                desc: "Share studies with colleagues via secure link. No account needed to view.",
-                color: "teal",
-              },
-            ].map((feature, i) => (
-              <div
-                key={i}
-                className="group relative rounded-2xl bg-slate-800/50 border border-slate-700 p-6 hover:bg-slate-800/80 hover:border-slate-600 transition-all duration-300"
-              >
-                <div className={`inline-flex h-12 w-12 items-center justify-center rounded-xl bg-${feature.color}-500/10 border border-${feature.color}-500/20 mb-4 group-hover:scale-110 transition-transform`}>
-                  <feature.icon className={`h-6 w-6 text-${feature.color}-400`} />
+              { icon: ZoomIn, title: "Zoom & Pan", desc: "Smoothly navigate high-resolution DICOM images with intuitive scroll zoom and click-drag panning.", color: "blue" },
+              { icon: Ruler, title: "Measurement Tools", desc: "Measure distances, angles, and areas with precision. Results displayed in mm, cm, or pixels.", color: "cyan" },
+              { icon: Contrast, title: "Window/Level Adjustment", desc: "Fine-tune brightness and contrast to highlight different tissue densities and structures.", color: "purple" },
+              { icon: Layers, title: "Multi-planar Reconstruction", desc: "View axial, sagittal, and coronal planes. Scroll through slices seamlessly.", color: "pink" },
+              { icon: Grid3X3, title: "Multi-image Layout", desc: "Compare multiple series or timepoints side-by-side with customizable grid layouts.", color: "indigo" },
+              { icon: RotateCcw, title: "Image Manipulation", desc: "Rotate, flip, and invert images. Reset to original with one click.", color: "green" },
+              { icon: Maximize, title: "Fullscreen Mode", desc: "Expand to fullscreen for detailed analysis. Works on any monitor or display.", color: "orange" },
+              { icon: Eye, title: "Annotation Tools", desc: "Add arrows, text labels, and region markers. Save annotations for future reference.", color: "rose" },
+              { icon: Share2, title: "Easy Sharing", desc: "Share studies with colleagues via secure link. No account needed to view.", color: "teal" },
+            ].map((feature, i) => {
+              const colors = featureColorMap[feature.color];
+              return (
+                <div
+                  key={i}
+                  className="group relative rounded-2xl bg-slate-800/50 border border-slate-700 p-6 hover:bg-slate-800/80 hover:border-slate-600 transition-all duration-300"
+                >
+                  <div className={`inline-flex h-12 w-12 items-center justify-center rounded-xl ${colors.bg} border ${colors.border} mb-4 group-hover:scale-110 transition-transform`}>
+                    <feature.icon className={`h-6 w-6 ${colors.text}`} />
+                  </div>
+                  <h4 className="font-semibold text-lg text-white mb-2">{feature.title}</h4>
+                  <p className="text-sm text-slate-400 leading-relaxed">{feature.desc}</p>
                 </div>
-                <h4 className="font-semibold text-lg text-white mb-2">{feature.title}</h4>
-                <p className="text-sm text-slate-400 leading-relaxed">{feature.desc}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Supported Formats */}
@@ -434,9 +502,9 @@ export default function LandingPage() {
                 description: "Only people with your link can view",
               },
               {
-                icon: CheckCircle2,
-                title: "You Control",
-                description: "Delete your files anytime",
+                icon: ShieldCheck,
+                title: "HIPAA Compliant",
+                description: "Meets healthcare privacy & security standards",
               },
             ].map((item, i) => (
               <div
@@ -499,24 +567,99 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="relative border-t py-16">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="flex flex-col items-center justify-between gap-8 md:flex-row">
-            <Logo className="text-2xl" />
-            <div className="flex gap-8 text-sm text-muted-foreground">
-              <Link href="#" className="link-hover hover:text-foreground">
-                Privacy Policy
-              </Link>
-              <Link href="#" className="link-hover hover:text-foreground">
-                Terms of Service
-              </Link>
-              <Link href="#" className="link-hover hover:text-foreground">
-                Contact
-              </Link>
+      <footer className="relative border-t bg-muted/30">
+        <div className="mx-auto max-w-7xl px-6 py-16">
+          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+            {/* Brand */}
+            <div className="col-span-2 md:col-span-1">
+              <Logo className="text-2xl" />
+              <p className="mt-3 text-sm text-muted-foreground max-w-xs">
+                Secure medical imaging sharing for patients and healthcare providers.
+              </p>
             </div>
+
+            {/* Product */}
+            <div>
+              <h4 className="font-semibold text-sm mb-4">Product</h4>
+              <ul className="space-y-2.5 text-sm text-muted-foreground">
+                <li>
+                  <Link href="#how-it-works" className="hover:text-foreground transition-colors">
+                    How It Works
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#viewer" className="hover:text-foreground transition-colors">
+                    DICOM Viewer
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#security" className="hover:text-foreground transition-colors">
+                    Security
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Get Started */}
+            <div>
+              <h4 className="font-semibold text-sm mb-4">Get Started</h4>
+              <ul className="space-y-2.5 text-sm text-muted-foreground">
+                <li>
+                  <Link href="/signup" className="hover:text-foreground transition-colors">
+                    Patient Sign Up
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/signup/provider" className="hover:text-foreground transition-colors">
+                    Provider Sign Up
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/login" className="hover:text-foreground transition-colors">
+                    Log In
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Legal */}
+            <div>
+              <h4 className="font-semibold text-sm mb-4">Legal</h4>
+              <ul className="space-y-2.5 text-sm text-muted-foreground">
+                <li>
+                  <Link href="#" className="hover:text-foreground transition-colors">
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-foreground transition-colors">
+                    Terms of Service
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-foreground transition-colors">
+                    Contact
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Bottom bar */}
+          <div className="mt-12 pt-8 border-t flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <p className="text-sm text-muted-foreground">
               &copy; {new Date().getFullYear()} CustodiaMed. All rights reserved.
             </p>
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                <span>HIPAA Compliant</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Lock className="h-4 w-4 text-primary" />
+                <span>256-bit Encrypted</span>
+              </div>
+            </div>
           </div>
         </div>
       </footer>

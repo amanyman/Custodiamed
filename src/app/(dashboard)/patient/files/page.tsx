@@ -98,7 +98,7 @@ export default async function FilesPage({ searchParams }: FilesPageProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold">My Files</h2>
+          <h2 className="text-2xl font-bold tracking-tight">My Files</h2>
           <p className="text-muted-foreground">
             Manage your medical imaging studies
           </p>

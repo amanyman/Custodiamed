@@ -27,7 +27,7 @@ export default async function UploadPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-8">
-        <h2 className="text-3xl font-bold">Upload Files</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Upload Files</h2>
         <p className="text-muted-foreground">
           Upload your medical imaging files to share with healthcare providers
         </p>

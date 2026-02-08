@@ -85,7 +85,7 @@ export default async function StudyDetailPage({ params }: StudyDetailPageProps) 
       </div>
 
       <div>
-        <h2 className="text-3xl font-bold">{file?.modality || "Medical Study"}</h2>
+        <h2 className="text-2xl font-bold tracking-tight">{file?.modality || "Medical Study"}</h2>
         <p className="text-muted-foreground mt-1">
           Shared by {patient?.profiles?.full_name || "Unknown Patient"}
         </p>

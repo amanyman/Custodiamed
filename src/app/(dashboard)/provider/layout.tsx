@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Sidebar } from "@/components/layout/sidebar";
+import { DashboardShell } from "@/components/layout/dashboard-shell";
 
 export default async function ProviderLayout({
   children,
@@ -67,17 +67,14 @@ export default async function ProviderLayout({
   }
 
   return (
-    <div className="flex h-screen">
-      <Sidebar
-        role="provider"
-        user={{
-          email: profile.email,
-          full_name: profile.full_name,
-        }}
-      />
-      <main className="flex-1 overflow-auto bg-background p-6">
-        {children}
-      </main>
-    </div>
+    <DashboardShell
+      role="provider"
+      user={{
+        email: profile.email,
+        full_name: profile.full_name,
+      }}
+    >
+      {children}
+    </DashboardShell>
   );
 }

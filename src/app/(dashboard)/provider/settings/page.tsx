@@ -33,7 +33,7 @@ export default async function ProviderSettingsPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h2 className="text-3xl font-bold">Settings</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
         <p className="text-muted-foreground">
           Manage your account settings and practice information
         </p>

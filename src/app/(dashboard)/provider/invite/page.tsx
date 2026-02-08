@@ -73,7 +73,7 @@ export default function InvitePatientPage() {
   return (
     <div className="space-y-8 max-w-2xl">
       <div>
-        <h2 className="text-3xl font-bold">Invite Patient</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Invite Patient</h2>
         <p className="text-muted-foreground mt-1">
           Share your unique link with patients so they can send you their medical imaging
         </p>

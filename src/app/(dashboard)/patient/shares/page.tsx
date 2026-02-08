@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Share2, FileImage, Eye, XCircle } from "lucide-react";
 import { RevokeShareButton } from "@/components/shares/revoke-share-button";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default async function SharesPage() {
   const supabase = await createClient();
@@ -60,7 +61,7 @@ export default async function SharesPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-bold">Shared Files</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Shared Files</h2>
         <p className="text-muted-foreground">
           Manage files you&apos;ve shared with healthcare providers
         </p>
@@ -72,18 +73,13 @@ export default async function SharesPage() {
           Active Shares ({activeShares.length})
         </h3>
         {activeShares.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Share2 className="h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-4 text-lg font-semibold">No active shares</h3>
-              <p className="mt-2 text-center text-sm text-muted-foreground">
-                Share your medical files with healthcare providers
-              </p>
-              <Link href="/patient/files" className="mt-4">
-                <Button>View My Files</Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={Share2}
+            title="No active shares"
+            description="Share your medical files with healthcare providers"
+            actionLabel="View My Files"
+            actionHref="/patient/files"
+          />
         ) : (
           <div className="space-y-4">
             {activeShares.map((share) => (
