@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getUser, getProvider } from "@/lib/supabase/cached";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,27 +21,14 @@ interface FilesPageProps {
 
 export default async function ProviderFilesPage({ searchParams }: FilesPageProps) {
   const params = await searchParams;
-  const supabase = await createClient();
+  const user = await getUser();
+  if (!user) redirect("/login");
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const { data: provider } = await supabase
-    .from("providers")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-
-  if (!provider) {
-    redirect("/login");
-  }
+  const provider = await getProvider(user.id);
+  if (!provider) redirect("/login");
 
   // Build study query with filters
+  const supabase = await createClient();
   let studyQuery = supabase
     .from("imaging_studies")
     .select("*")

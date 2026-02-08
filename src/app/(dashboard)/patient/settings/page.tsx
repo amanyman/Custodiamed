@@ -1,26 +1,15 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getUser, getProfile } from "@/lib/supabase/cached";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { User, Mail, Calendar } from "lucide-react";
 
 export default async function SettingsPage() {
-  const supabase = await createClient();
+  const user = await getUser();
+  if (!user) redirect("/login");
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
+  const profile = await getProfile(user.id);
 
   return (
     <div className="space-y-6 max-w-2xl">

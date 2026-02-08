@@ -1,32 +1,20 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getUser, getPatient } from "@/lib/supabase/cached";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Users, Building2 } from "lucide-react";
 
 export default async function ProvidersPage() {
-  const supabase = await createClient();
+  const user = await getUser();
+  if (!user) redirect("/login");
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const { data: patient } = await supabase
-    .from("patients")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-
-  if (!patient) {
-    redirect("/login");
-  }
+  const patient = await getPatient(user.id);
+  if (!patient) redirect("/login");
 
   // Get connected providers
+  const supabase = await createClient();
   const { data: relationships } = await supabase
     .from("patient_provider_relationships")
     .select(`

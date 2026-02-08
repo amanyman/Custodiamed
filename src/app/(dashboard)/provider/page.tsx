@@ -1,33 +1,20 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { getUser, getProvider } from "@/lib/supabase/cached";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Link2, FileText, Eye, Upload, User, Monitor, Search } from "lucide-react";
 import Link from "next/link";
 
 export default async function ProviderDashboard() {
-  const supabase = await createClient();
+  const user = await getUser();
+  if (!user) redirect("/login");
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  // Get provider record
-  const { data: provider } = await supabase
-    .from("providers")
-    .select("id, practice_name")
-    .eq("user_id", user.id)
-    .single();
-
-  if (!provider) {
-    redirect("/login");
-  }
+  const provider = await getProvider(user.id);
+  if (!provider) redirect("/login");
 
   // Get counts for quick stats
+  const supabase = await createClient();
   const [{ count: pendingCount }, { count: ownFilesCount }] = await Promise.all([
     supabase
       .from("file_shares")

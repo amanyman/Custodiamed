@@ -1,28 +1,14 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getUser, getProvider } from "@/lib/supabase/cached";
 import { FileUploader } from "@/components/files/file-uploader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function ProviderUploadPage() {
-  const supabase = await createClient();
+  const user = await getUser();
+  if (!user) redirect("/login");
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const { data: provider } = await supabase
-    .from("providers")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-
-  if (!provider) {
-    redirect("/login");
-  }
+  const provider = await getProvider(user.id);
+  if (!provider) redirect("/login");
 
   return (
     <div className="mx-auto max-w-3xl">

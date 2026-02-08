@@ -1,6 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getUser, getProvider } from "@/lib/supabase/cached";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,28 +20,14 @@ export default async function ProviderStudyDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
+  const user = await getUser();
+  if (!user) redirect("/login");
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  // Get provider
-  const { data: provider } = await supabase
-    .from("providers")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-
-  if (!provider) {
-    redirect("/login");
-  }
+  const provider = await getProvider(user.id);
+  if (!provider) redirect("/login");
 
   // Get study - secured by provider_id
+  const supabase = await createClient();
   const { data: study } = await supabase
     .from("imaging_studies")
     .select("*")

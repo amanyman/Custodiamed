@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { getUser, getProvider } from "@/lib/supabase/cached";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Eye, User, Calendar, FileText, Clock, CheckCircle } from "lucide-react";
@@ -11,28 +12,14 @@ interface StudyDetailPageProps {
 
 export default async function StudyDetailPage({ params }: StudyDetailPageProps) {
   const { studyId } = await params;
-  const supabase = await createClient();
+  const user = await getUser();
+  if (!user) redirect("/login");
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  // Get provider
-  const { data: provider } = await supabase
-    .from("providers")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-
-  if (!provider) {
-    redirect("/login");
-  }
+  const provider = await getProvider(user.id);
+  if (!provider) redirect("/login");
 
   // Get the file share
+  const supabase = await createClient();
   const { data: share } = await supabase
     .from("file_shares")
     .select(`

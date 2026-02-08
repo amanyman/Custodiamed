@@ -1,6 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getUser, getPatient } from "@/lib/supabase/cached";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,26 +14,13 @@ export default async function FileDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const user = await getUser();
+  if (!user) redirect("/login");
+
+  const patient = await getPatient(user.id);
+  if (!patient) redirect("/login");
+
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const { data: patient } = await supabase
-    .from("patients")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-
-  if (!patient) {
-    redirect("/login");
-  }
-
   const { data: file } = await supabase
     .from("medical_files")
     .select(`

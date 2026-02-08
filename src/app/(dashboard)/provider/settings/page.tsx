@@ -1,34 +1,18 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getUser, getProfile, getProvider } from "@/lib/supabase/cached";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileForm } from "@/components/settings/profile-form";
 
 export default async function ProviderSettingsPage() {
-  const supabase = await createClient();
+  const user = await getUser();
+  if (!user) redirect("/login");
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [profile, provider] = await Promise.all([
+    getProfile(user.id),
+    getProvider(user.id),
+  ]);
 
-  if (!user) {
-    redirect("/login");
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  const { data: provider } = await supabase
-    .from("providers")
-    .select("*")
-    .eq("user_id", user.id)
-    .single();
-
-  if (!profile || !provider) {
-    redirect("/login");
-  }
+  if (!profile || !provider) redirect("/login");
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">

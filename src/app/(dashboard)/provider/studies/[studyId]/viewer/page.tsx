@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { getUser, getProvider } from "@/lib/supabase/cached";
 import { ViewerClient } from "./viewer-client";
 
 interface ViewerPageProps {
@@ -8,29 +9,15 @@ interface ViewerPageProps {
 
 export default async function ViewerPage({ params }: ViewerPageProps) {
   const { studyId } = await params;
-  const supabase = await createClient();
+  const user = await getUser();
+  if (!user) redirect("/login");
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  // Get provider
-  const { data: provider } = await supabase
-    .from("providers")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-
-  if (!provider) {
-    redirect("/login");
-  }
+  const provider = await getProvider(user.id);
+  if (!provider) redirect("/login");
 
   // Get the file share and related files
   // First try to find by share ID, then by study_id
+  const supabase = await createClient();
   let files: any[] = [];
   let studyInfo: any = null;
   let patientName = "Unknown Patient";

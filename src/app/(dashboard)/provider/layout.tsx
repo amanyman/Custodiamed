@@ -1,30 +1,26 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getUser, getProfile } from "@/lib/supabase/cached";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 export default async function ProviderLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
 
   if (!user) {
     redirect("/login");
   }
 
-  let { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
+  let profile = await getProfile(user.id);
 
   // If profile doesn't exist, create it (fallback for failed triggers)
   if (!profile) {
+    const supabase = await createClient();
     const fullName = user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
     const role = user.user_metadata?.role || "patient";
 
@@ -74,7 +70,9 @@ export default async function ProviderLayout({
         full_name: profile.full_name,
       }}
     >
-      {children}
+      <Suspense fallback={<LoadingScreen />}>
+        {children}
+      </Suspense>
     </DashboardShell>
   );
 }

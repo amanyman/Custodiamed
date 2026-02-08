@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getUser, getPatient } from "@/lib/supabase/cached";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,26 +10,13 @@ import { RevokeShareButton } from "@/components/shares/revoke-share-button";
 import { EmptyState } from "@/components/ui/empty-state";
 
 export default async function SharesPage() {
+  const user = await getUser();
+  if (!user) redirect("/login");
+
+  const patient = await getPatient(user.id);
+  if (!patient) redirect("/login");
+
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const { data: patient } = await supabase
-    .from("patients")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-
-  if (!patient) {
-    redirect("/login");
-  }
-
   const { data: shares } = await supabase
     .from("file_shares")
     .select(`

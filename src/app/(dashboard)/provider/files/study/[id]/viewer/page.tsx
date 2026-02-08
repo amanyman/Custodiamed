@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
+import { getUser, getProvider } from "@/lib/supabase/cached";
 import { ViewerClient } from "./viewer-client";
 
 interface ViewerPageProps {
@@ -8,28 +9,14 @@ interface ViewerPageProps {
 
 export default async function ProviderFileViewerPage({ params }: ViewerPageProps) {
   const { id } = await params;
-  const supabase = await createClient();
+  const user = await getUser();
+  if (!user) redirect("/login");
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  // Get provider
-  const { data: provider } = await supabase
-    .from("providers")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-
-  if (!provider) {
-    redirect("/login");
-  }
+  const provider = await getProvider(user.id);
+  if (!provider) redirect("/login");
 
   // Get study - secured by provider_id
+  const supabase = await createClient();
   const { data: study } = await supabase
     .from("imaging_studies")
     .select("*")

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { getUser, getProvider } from "@/lib/supabase/cached";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, User, Calendar, Eye, Clock } from "lucide-react";
@@ -7,28 +8,14 @@ import Link from "next/link";
 import { EmptyState } from "@/components/ui/empty-state";
 
 export default async function SharedStudiesPage() {
-  const supabase = await createClient();
+  const user = await getUser();
+  if (!user) redirect("/login");
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  // Get provider record
-  const { data: provider } = await supabase
-    .from("providers")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-
-  if (!provider) {
-    redirect("/login");
-  }
+  const provider = await getProvider(user.id);
+  if (!provider) redirect("/login");
 
   // Expire old shares before querying
+  const supabase = await createClient();
   try {
     await supabase.rpc("expire_old_shares");
   } catch {
